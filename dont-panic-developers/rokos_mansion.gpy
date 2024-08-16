@@ -68,7 +68,7 @@ Generate a detailed scenario description for the current page in the "Mansion of
 3. Inventory: {', '.join(self._inventory) if self._inventory else 'Empty'}
 4. Page Scenario: {self.page_text[self._current_page_number]}
 
-Create a vivid and immersive description that incorporates elements of the specified writer's style, cultural elements from the given country, mentions any items in the characters inventory, and expands on the original page scenario. The description should be consistent with the original context while adding depth and atmosphere.
+Create a very brief but vivid and immersive description that incorporates elements of the specified writer's style, cultural elements from the given country, mentions any items in the characters inventory, and expands on the original page scenario. The description should be consistent with the original context while adding depth and atmosphere.
 
 Respond using ONLY the following format:
 {{
