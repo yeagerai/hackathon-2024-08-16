@@ -1,27 +1,45 @@
-from dataclasses import dataclass
 from typing import List
 from backend.node.genvm.icontract import IContract
 from backend.node.genvm.equivalence_principle import EquivalencePrinciple
 import json
 
 
-@dataclass
-class AnalyzedTweet:
-    influencer: str
-    tweet: str
-    date: str
-    cryptocurrency: str
-    positive_sentiment: float
-
-
 # TODO: handle duplication of tweet feeds
 class TowelTechies(IContract):
+    # AnalyzedTweet is defined here due to problems "compiling" the contract in the simulator
+    from dataclasses import dataclass
+
+    @dataclass
+    class AnalyzedTweet:
+        influencer: str
+        tweet: str
+        date: str
+        cryptocurrency: str
+        positive_sentiment: float
+
     def __init__(self) -> None:
         from collections import defaultdict
-        self.leaderboard: dict[str, float] = {}
-        self.price_history: dict[str, dict[str, float]] = defaultdict(dict)
-        self.tweets_pending_process: List[AnalyzedTweet] = []
-        self.balances : dict[]= {}
+
+        self.leaderboard: dict[str, float] = {}  # influencer -> score
+        self.price_history: dict[str, dict[str, float]] = defaultdict(
+            dict
+        )  # cryptocurrency -> date -> price
+        self.tweets_pending_process: List[TowelTechies.AnalyzedTweet] = []
+        self.balances: dict[str, int] = defaultdict(int)  # address -> balance
+        self.followers: dict[str, set[str]] = defaultdict(
+            set
+        )  # influencer -> followers addresses
+
+        self.followers_investments: dict[str, int] = defaultdict(
+            self._default_int_dict
+        )  # address -> cryptocurrency -> investment. Simulates interactions with other coins
+
+    def _default_int_dict(
+        self,
+    ):  # This is a workaround for the fact that lambdas don't work in the simulator
+        from collections import defaultdict
+
+        return defaultdict(int)
 
     async def feed(self, influencer: str, tweet: str, date: str):
         """
@@ -76,7 +94,7 @@ class TowelTechies(IContract):
         tweet_result = json.loads(tweet_result["output"])
 
         for item in tweet_result:
-            tweet_pending_process = AnalyzedTweet(
+            analyzed_tweet = TowelTechies.AnalyzedTweet(
                 influencer=influencer,
                 tweet=tweet,
                 date=date,
@@ -84,7 +102,34 @@ class TowelTechies(IContract):
                 positive_sentiment=item["positive_sentiment"],
             )
 
-            self.tweets_pending_process.append(tweet_pending_process)
+            self.tweets_pending_process.append(analyzed_tweet)
+
+            if date == self._today():
+                self._update_follower_investments(analyzed_tweet)
+
+    def _today(self) -> str:
+        from datetime import date
+
+        return date.today().strftime("%Y-%m-%d")
+
+    def _update_follower_investments(self, analyzed_tweet: AnalyzedTweet):
+        # TODO: can we make this contract interact with other Ethereum contracts like ERC20?
+        # TODO: sentiment threshold and investment amount are arbitrary
+        if analyzed_tweet.positive_sentiment > 0.5:  # Buy
+            for follower in self.followers[analyzed_tweet.influencer]:
+                if self.balances[follower] > 0:
+                    self.balances[follower] -= 1
+                    self.followers_investments[follower][
+                        analyzed_tweet.cryptocurrency
+                    ] += 1
+
+        elif analyzed_tweet.positive_sentiment < -0.5:  # Sell
+            for follower in self.followers[analyzed_tweet.influencer]:
+                if self.followers_investments[follower] > 0:
+                    self.balances[follower] += 1
+                    self.followers_investments[follower][
+                        analyzed_tweet.cryptocurrency
+                    ] -= 1
 
     async def process_score(self):
         """
@@ -92,7 +137,13 @@ class TowelTechies(IContract):
             - This step uses Consensus and connects to the Internet to get the price change
         2. Update the leaderboard with the score of the influencer, based on alignment between sentiment and price change
         """
+        tweets_pending_process_from_today = []
         for tweet in self.tweets_pending_process:
+            if tweet.date == self._today():
+                # We skip today's tweets since there's no market data yet
+                tweets_pending_process_from_today.append(tweet)
+                continue
+
             price_change = await self.retrieve_market_data(
                 tweet.cryptocurrency, tweet.date
             )
@@ -102,7 +153,7 @@ class TowelTechies(IContract):
                 price_change * tweet.positive_sentiment
             )
 
-        self.tweets_pending_process = []
+        self.tweets_pending_process = tweets_pending_process_from_today
 
     # TODO: use date
     async def retrieve_market_data(self, cryptocurrency: str, date: str) -> float:
@@ -145,6 +196,15 @@ class TowelTechies(IContract):
         self.price_history[cryptocurrency][date] = market_data
         return market_data
 
+    def deposit(self, amount: int):
+        self.balances[contract_runner.from_address] += amount
+
+    def follow(self, influencer: str):
+        self.followers[influencer].add(contract_runner.from_address)
+
+    def unfollow(self, influencer: str):
+        self.followers[influencer].remove(contract_runner.from_address)
+
     # Read methods
     def get_leaderboard(self):
         return self.leaderboard
@@ -153,15 +213,50 @@ class TowelTechies(IContract):
         return self.price_history
 
     def get_tweets_pending_process(self):
-        return self.tweets_pending_process
+        return [item.__dict__ for item in self.tweets_pending_process]
+
+    def get_followers_investments(self):
+        return self.followers_investments
+
+    def get_followers(self):
+        return {key: list(value) for key, value in self.followers.items()}
+
+    def get_all_state(self):
+        # We convert them so they are json serializable
+        return {
+            "leaderboard": self.leaderboard,
+            "price_history": self.price_history,
+            "tweets_pending_process": self.get_tweets_pending_process(),
+            "balances": self.balances,
+            "followers": self.get_followers(),
+            "followers_investments": self.followers_investments,
+        }
 
     async def test(self):
+        influencer = "Chris Burniske"
+        self.deposit(1000)
+
+        self.follow(influencer)
+
+        # New tweet, should create movement in followers investments
         await self.feed(
-            "Chris Burniske",
-            """
+            influencer=influencer,
+            tweet="""
         Each cycle I've tended to give a majority of focus to one major underdog. In 2014-17 that was $BTC, in 2018-2021 that was $ETH, and in 2022 to now that's $SOL.
         """,
-            "2024-08-15",
+            date=self._today(),
+        )
+
+        other_influencer = "Wizard Of SoHo"
+        self.follow(other_influencer)
+
+        # Old tweet, should be processed for leaderboard score
+        await self.feed(
+            influencer=other_influencer,
+            tweet="""
+            @Nate_Rivers @osf_rekt I don't think so. Doge had Elon like max shilling. No other memecoin has made it otherwise. Who is gonna drive pepe up again? No coin makes it without some leaders pushing it or large holders. Here the large holders are jeet scam devs with no rep outside of shitcoin world
+            """,
+            date="2024-08-16",
         )
 
         await self.process_score()
