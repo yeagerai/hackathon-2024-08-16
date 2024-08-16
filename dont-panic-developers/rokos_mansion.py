@@ -4,7 +4,7 @@ from backend.node.genvm.equivalence_principle import call_llm_with_principle
 
 
 class RokosMansion(IContract):
-    def __init__(self, style: str = "Stephen King", country: str = "USA"):
+    async def __init__(self, style: str = "Stephen King", country: str = "USA"):
         self._allowed_styles = ["Stephen King", "HP Lovecraft", "Clive Barker"]
         assert style in self._allowed_styles
         self._style = style
@@ -43,7 +43,7 @@ class RokosMansion(IContract):
             10: "Action: Return to the Entrance Hall and select a different room to explore. Gather clues or explore the mansion.",
             11: "Action: Exit the mansion, completing your journey as the savior of the future. You’ve won the game!"
         }
-        #self.update_current_page()
+        await self.update_current_page()
 
     def update_current_page(self) -> str:
         if not self._current_page_number in self.page_text_gen:  
