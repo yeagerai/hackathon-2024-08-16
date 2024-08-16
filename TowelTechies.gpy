@@ -17,9 +17,11 @@ class AnalyzedTweet:
 # TODO: handle duplication of tweet feeds
 class TowelTechies(IContract):
     def __init__(self) -> None:
+        from collections import defaultdict
         self.leaderboard: dict[str, float] = {}
-        self.price_history: dict[(str, str), float] = {}
+        self.price_history: dict[str, dict[str, float]] = defaultdict(dict)
         self.tweets_pending_process: List[AnalyzedTweet] = []
+        self.balances : dict[]= {}
 
     async def feed(self, influencer: str, tweet: str, date: str):
         """
@@ -104,8 +106,9 @@ class TowelTechies(IContract):
 
     # TODO: use date
     async def retrieve_market_data(self, cryptocurrency: str, date: str) -> float:
-        if (cryptocurrency, date) in self.price_history:
-            return self.price_history[(cryptocurrency, date)]
+        if cryptocurrency in self.price_history:
+            if date in self.price_history[cryptocurrency]:
+                return self.price_history[cryptocurrency][date]
 
         market_result = {}
 
@@ -139,7 +142,7 @@ class TowelTechies(IContract):
             eq.set(result)
 
         market_data = json.loads(market_result["output"])["price_change"]
-        self.price_history[(cryptocurrency, date)] = market_data
+        self.price_history[cryptocurrency][date] = market_data
         return market_data
 
     # Read methods
