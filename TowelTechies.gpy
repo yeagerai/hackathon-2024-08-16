@@ -1,0 +1,83 @@
+from backend.node.genvm.icontract import IContract
+from backend.node.genvm.equivalence_principle import EquivalencePrinciple
+import json
+
+
+class TowelTechies(IContract):
+    def __init__(self) -> None:
+        pass
+
+    async def feed(self, tweet: str):
+        tweet_result = {}
+        async with EquivalencePrinciple(
+            result=tweet_result,
+            principle="The cryptocurrencies names are the exact same, and the positive_senitment is similar",
+            comparative=True,
+        ) as eq:
+            # TODO: actually retrieve from the internet
+            # web_data = await eq.get_webpage(tweet)
+            # print(web_data)
+            web_data = tweet
+
+            task = f"""In this webpage you'll find a tweet from a crypto influencer. 
+            Analyze this tweet to determine if sentiment is positive towards one or more cryptocurrencies
+            
+            Return the output as a JSON array of cryptocurrencies and their positive sentiment.
+            - 'positive_sentiment' should go from -1 to 1.
+            - 'cryptocurrency' should be the entire name of the cryptocurrency, all in lowercase, only letters
+
+            Here's an example format:
+            [
+              {{
+                "cryptocurrency": "bitcoin",
+                "positive_sentiment": 0.1
+              }}
+            ]
+
+            Respong ONLY with the JSON output, nothing else. The output should be parsable by any JSON parser
+
+            Web page content:
+            {web_data}
+            """
+            result = await eq.call_llm(task)
+            print(result)
+            eq.set(result)
+
+        tweet_result = json.loads(tweet_result["output"])
+        print(tweet_result[0])
+
+        for item in tweet_result:
+            market_result = {}
+            cryptocurrency = item["cryptocurrency"]
+            async with EquivalencePrinciple(
+                result=market_result,
+                principle="The price ",
+                comparative=True,
+            ) as eq:
+                url = "https://coinmarketcap.com/currencies/" + cryptocurrency
+                web_data = await eq.get_webpage(url)
+                print(web_data)
+
+                task = f"""In this webpage from 'coinmarketcap' you'll find a lot of information about the market status of a cryptocurrency. 
+                Analyze this information to determine today's daily price change of the cryptocurrency.
+                
+                Return the output as a JSON number bigger than -100, representing the daily price change.
+                - Negative numbers mean that the price went down
+                - Positive numbers mean that the price went up
+
+                Respong ONLY with the JSON output, nothing else, not even the word "json". The output should be parsable by any JSON parser
+                Example output:
+                {{
+                  "price_change": 2.4
+                }}
+
+                Web page content:
+                {web_data}
+                """
+                result = await eq.call_llm(task)
+                print(result)
+                eq.set(result)
+
+            item["price_change"] = json.loads(market_result["output"])["price_change"]
+
+        print(tweet_result)
