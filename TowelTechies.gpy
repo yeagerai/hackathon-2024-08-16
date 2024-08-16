@@ -9,6 +9,20 @@ class TowelTechies(IContract):
         self.price_history: dict[(str, str), float] = {}
 
     async def feed(self, influencer: str, tweet: str, date: str):
+        """
+        Inputs:
+        - influencer: the name of the influencer
+        - tweet: the tweet content
+        - date: the date of the tweet
+
+        Process:
+        1. Analyze the tweet to determine if sentiment is positive towards one or more cryptocurrencies
+            - This step uses Consensus to analyze the tweet
+        2. For each cryptocurrency mentioned in the tweet, get the daily price change
+            - This step uses Consensus and connects to the Internet to get the price change
+        3. Update the leaderboard with the score of the influencer, based on alignment between sentiment and price change
+
+        """
         if influencer not in self.leaderboard:
             self.leaderboard[influencer] = 0
 
