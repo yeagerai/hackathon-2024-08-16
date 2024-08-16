@@ -1,12 +1,25 @@
+from dataclasses import dataclass
+from typing import List
 from backend.node.genvm.icontract import IContract
 from backend.node.genvm.equivalence_principle import EquivalencePrinciple
 import json
 
 
+@dataclass
+class AnalyzedTweet:
+    influencer: str
+    tweet: str
+    date: str
+    cryptocurrency: str
+    positive_sentiment: float
+
+
+# TODO: handle duplication of tweet feeds
 class TowelTechies(IContract):
     def __init__(self) -> None:
         self.leaderboard: dict[str, float] = {}
         self.price_history: dict[(str, str), float] = {}
+        self.tweets_pending_process: List[AnalyzedTweet] = []
 
     async def feed(self, influencer: str, tweet: str, date: str):
         """
@@ -18,12 +31,9 @@ class TowelTechies(IContract):
         Process:
         1. Analyze the tweet to determine if sentiment is positive towards one or more cryptocurrencies
             - This step uses Consensus to analyze the tweet
-        2. For each cryptocurrency mentioned in the tweet, get the daily price change
-            - This step uses Consensus and connects to the Internet to get the price change
-        3. Update the leaderboard with the score of the influencer, based on alignment between sentiment and price change
-
+            - We save these results in a list of tweets pending process, one per cryptocurrency
         """
-        if influencer not in self.leaderboard:
+        if influencer not in self.leaderboard:  # influencer enters the leaderboard
             self.leaderboard[influencer] = 0
 
         tweet_result = {}
@@ -62,20 +72,38 @@ class TowelTechies(IContract):
             eq.set(result)
 
         tweet_result = json.loads(tweet_result["output"])
-        print(tweet_result[0])
 
         for item in tweet_result:
-            cryptocurrency = item["cryptocurrency"]
+            tweet_pending_process = AnalyzedTweet(
+                influencer=influencer,
+                tweet=tweet,
+                date=date,
+                cryptocurrency=item["cryptocurrency"],
+                positive_sentiment=item["positive_sentiment"],
+            )
 
-            price_change = await self.get_market_data(cryptocurrency, date)
+            self.tweets_pending_process.append(tweet_pending_process)
+
+    async def process_score(self):
+        """
+        1. For each analyzed tweet, get the daily price change of the cryptocurrency
+            - This step uses Consensus and connects to the Internet to get the price change
+        2. Update the leaderboard with the score of the influencer, based on alignment between sentiment and price change
+        """
+        for tweet in self.tweets_pending_process:
+            price_change = await self.retrieve_market_data(
+                tweet.cryptocurrency, tweet.date
+            )
 
             # This is a simple score function for demonstration
-            self.leaderboard[influencer] += price_change * item["positive_sentiment"]
+            self.leaderboard[tweet.influencer] += (
+                price_change * tweet.positive_sentiment
+            )
 
-        print(tweet_result)
+        self.tweets_pending_process = []
 
     # TODO: use date
-    async def get_market_data(self, cryptocurrency: str, date: str) -> float:
+    async def retrieve_market_data(self, cryptocurrency: str, date: str) -> float:
         if (cryptocurrency, date) in self.price_history:
             return self.price_history[(cryptocurrency, date)]
 
@@ -114,8 +142,15 @@ class TowelTechies(IContract):
         self.price_history[(cryptocurrency, date)] = market_data
         return market_data
 
+    # Read methods
     def get_leaderboard(self):
         return self.leaderboard
+
+    def get_price_history(self):
+        return self.price_history
+
+    def get_tweets_pending_process(self):
+        return self.tweets_pending_process
 
     async def test(self):
         await self.feed(
@@ -125,3 +160,5 @@ class TowelTechies(IContract):
         """,
             "2024-08-15",
         )
+
+        await self.process_score()
