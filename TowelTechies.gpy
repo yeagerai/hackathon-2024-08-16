@@ -5,9 +5,13 @@ import json
 
 class TowelTechies(IContract):
     def __init__(self) -> None:
-        pass
+        self.leaderboard: dict[str, float] = {}
+        self.price_history: dict[(str, str), float] = {}
 
-    async def feed(self, tweet: str):
+    async def feed(self, influencer: str, tweet: str, date: str):
+        if influencer not in self.leaderboard:
+            self.leaderboard[influencer] = 0
+
         tweet_result = {}
         async with EquivalencePrinciple(
             result=tweet_result,
@@ -47,18 +51,32 @@ class TowelTechies(IContract):
         print(tweet_result[0])
 
         for item in tweet_result:
-            market_result = {}
             cryptocurrency = item["cryptocurrency"]
-            async with EquivalencePrinciple(
-                result=market_result,
-                principle="The price ",
-                comparative=True,
-            ) as eq:
-                url = "https://coinmarketcap.com/currencies/" + cryptocurrency
-                web_data = await eq.get_webpage(url)
-                print(web_data)
 
-                task = f"""In this webpage from 'coinmarketcap' you'll find a lot of information about the market status of a cryptocurrency. 
+            price_change = await self.get_market_data(cryptocurrency, date)
+
+            # This is a simple score function for demonstration
+            self.leaderboard[influencer] += price_change * item["positive_sentiment"]
+
+        print(tweet_result)
+
+    # TODO: use date
+    async def get_market_data(self, cryptocurrency: str, date: str) -> float:
+        if (cryptocurrency, date) in self.price_history:
+            return self.price_history[(cryptocurrency, date)]
+
+        market_result = {}
+
+        async with EquivalencePrinciple(
+            result=market_result,
+            principle="The price ",
+            comparative=True,
+        ) as eq:
+            url = "https://coinmarketcap.com/currencies/" + cryptocurrency
+            web_data = await eq.get_webpage(url)
+            print(web_data)
+
+            task = f"""In this webpage from 'coinmarketcap' you'll find a lot of information about the market status of a cryptocurrency. 
                 Analyze this information to determine today's daily price change of the cryptocurrency.
                 
                 Return the output as a JSON number bigger than -100, representing the daily price change.
@@ -74,10 +92,22 @@ class TowelTechies(IContract):
                 Web page content:
                 {web_data}
                 """
-                result = await eq.call_llm(task)
-                print(result)
-                eq.set(result)
+            result = await eq.call_llm(task)
+            print(result)
+            eq.set(result)
 
-            item["price_change"] = json.loads(market_result["output"])["price_change"]
+        market_data = json.loads(market_result["output"])["price_change"]
+        self.price_history[(cryptocurrency, date)] = market_data
+        return market_data
 
-        print(tweet_result)
+    def get_leaderboard(self):
+        return self.leaderboard
+
+    async def test(self):
+        await self.feed(
+            "Chris Burniske",
+            """
+        Each cycle I've tended to give a majority of focus to one major underdog. In 2014-17 that was $BTC, in 2018-2021 that was $ETH, and in 2022 to now that's $SOL.
+        """,
+            "2024-08-15",
+        )
