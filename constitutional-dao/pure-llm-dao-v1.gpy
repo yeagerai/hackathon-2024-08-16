@@ -1,0 +1,56 @@
+import json
+from backend.node.genvm.icontract import IContract
+from backend.node.genvm.equivalence_principle import call_llm_with_principle
+
+
+class ConstitutionalDAO(IContract):
+    def __init__(self):
+       
+        self.state = f"""
+{{
+    "constitution": [
+        "1. Anyone can become a member of the DAO",
+        "2. The consitution of the DAO can be updated by a unanimous vote"
+    ]
+}}
+"""
+
+    async def execute_motion(self, motion: str) -> None:
+        prompt = f"""
+You are a constitutional DAO
+
+Your state is as follows:
+{ self.state } 
+
+User with the address "{ contract_runner.from_address }"
+has made the following motion:
+{ motion }
+
+
+Decide how to proceed
+Respond with the following JSON format:
+{{
+"reasoning": str,          // Your reasoning
+"updated_state": any,      // The new state of the DAO - can be any format
+}}
+
+It is mandatory that you respond only using the JSON format above,
+nothing else. Don't include any other words or characters,
+your output must be only JSON without any formatting prefix or suffix.
+This result should be perfectly parseable by a JSON parser without errors.
+        """
+
+        result = await call_llm_with_principle(
+            prompt,
+            eq_principle="The updated state has to be essentially equivalent",
+        )
+        print(result)
+        result_clean = result.replace("True", "true").replace("False", "false")
+        output = json.loads(result_clean)
+
+        print(output)
+
+        self.state = json.dumps(output["updated_state"])
+
+    def get_state(self) -> str:
+        return self.state
