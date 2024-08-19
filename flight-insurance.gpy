@@ -7,7 +7,7 @@ class FlightInsurance(IContract):
     # def __init__(self, _flight_number: str, _flight_date: str, _flight_time: str, _flight_from: str, _flight_to: str, _num_passengers_paid_insurance: int, _insurance_value_per_passenger: int):
     #     self.flight_number = _flight_number
     #     self.num_passengers_paid_insurance = _num_passengers_paid_insurance
-    #     self.flight_departure_delayed = False
+    #     self.flight_arrival_delayed = False
     #     self.flight_date = _flight_date
     #     self.flight_time = _flight_time
     #     self.flight_from = _flight_from
@@ -21,7 +21,7 @@ class FlightInsurance(IContract):
     def __init__(self):
         self.flight_number = "TAP457"
         self.num_passengers_paid_insurance = 35
-        self.flight_departure_delayed = False
+        self.flight_arrival_delayed = False
         self.flight_date = "20240818"
         self.flight_time = "0510Z"
         self.flight_from = "LFPO"
@@ -38,7 +38,7 @@ class FlightInsurance(IContract):
         final_result = {}
         async with EquivalencePrinciple(
             result=final_result,
-            principle="The flight status must be the same",
+            principle="The arrivalstatus should be the similar",
             comparative=True,
         ) as eq:
             web_data = await eq.get_webpage(self.resolution_url)
@@ -48,13 +48,13 @@ class FlightInsurance(IContract):
             print(" ")
             print(" ")
             prompt = f"""
-In the following web page, find if the flight was delayed or not:
+In the following web page, find if the flight arrival was late or not:
 Web page content:
 {web_data} 
 End of web page data.
 Respond using ONLY the following format:
 {{
-"departurestatus": bool // True if the flight was delayed or False if it was on time
+"arrivalstatus": bool // True if the flight arrival was delayed or False if it was on time
 }}
 It is mandatory that you respond only using the JSON format above,
 nothing else. Don't include any other words or characters,
@@ -76,14 +76,14 @@ This result should be perfectly parseable by a JSON parser without errors.
             output = json.loads(result_clean)
             print(" ")
             print("output: ")
-            print(output["departurestatus"])
+            print(output["arrivalstatus"])
             print(" ")
             print(" ")  
-            if output["departurestatus"] is True:
-                self.flight_departure_delayed = True
+            if output["arrivalstatus"] is True:
+                self.flight_arrival_delayed = True
                 print(" ")
-                print("flight_departure_delayed: ")
-                print(self.flight_departure_delayed)
+                print("flight_arrival_delayed: ")
+                print(self.flight_arrival_delayed)
                 print(" ")
                 print(" ")  
     
@@ -91,13 +91,13 @@ This result should be perfectly parseable by a JSON parser without errors.
         self.balances[_passenger_address] = 0
 
     def insurance_claim(self, _passenger_address:str) ->None:
-        if self.flight_departure_delayed is True:
+        if self.flight_arrival_delayed is True:
             if _passenger_address in self.balances:
                 self.balances[_passenger_address] = self.loss_payment_value_per_passenger
                 self.balances[self.insurance_manager] = (self.balances[self.insurance_manager]-self.loss_payment_value_per_passenger)
 
     def get_flight_status(self) ->bool:
-        return self.flight_departure_delayed
+        return self.flight_arrival_delayed
     
     def get_insurance_balance(self, _passenger_address:str) ->int:
         if _passenger_address in self.balances:
@@ -134,7 +134,3 @@ This result should be perfectly parseable by a JSON parser without errors.
       
     def get_num_passengers_paid_insurance(self) ->int:
         return self.num_passengers_paid_insurance
-      
-      
-      
-
