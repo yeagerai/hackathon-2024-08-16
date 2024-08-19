@@ -12,7 +12,9 @@ class FlightInsurance(IContract):
     #     self.flight_time = _flight_time
     #     self.flight_from = _flight_from
     #     self.flight_to = _flight_to
-    #     self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" + self.flight_date + "/" + self.flight_time + "/" + self.flight_from + "/" + self.flight_to
+    #     self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" 
+    #     self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" 
+    #     self.resolution_url = self.resolution_url + self.flight_from + "/" + self.flight_to
     #     self.loss_payment_value_per_passenger = _insurance_value_per_passenger
     #     self.balances = {}
     #     self.balances[contract_runner.from_address] = _num_passengers_paid_insurance*_insurance_value_per_passenger
@@ -27,7 +29,8 @@ class FlightInsurance(IContract):
         self.flight_from = "LFPO"
         self.flight_to = "LPPR"
         self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" 
-        self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" + self.flight_from + "/" + self.flight_to
+        self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" 
+        self.resolution_url = self.resolution_url + self.flight_from + "/" + self.flight_to
         self.loss_payment_value_per_passenger = 30
         self.balances = {}
         self.balances[contract_runner.from_address] = self.loss_payment_value_per_passenger*self.loss_payment_value_per_passenger
@@ -73,6 +76,7 @@ This result should be perfectly parseable by a JSON parser without errors.
             print(result_clean)
             print(" ")
             print(" ")   
+            eq.set(result_clean)
             output = json.loads(result_clean)
             print(" ")
             print("output: ")
