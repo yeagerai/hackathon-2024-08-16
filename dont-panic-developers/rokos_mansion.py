@@ -20,6 +20,8 @@ class RokosMansion(IContract):
         _style (str): Selected writing style.
         _allowed_countries (list): List of allowed country styles.
         _country (str): Selected country style.
+        _allowed_difficulties (list): List of allowed difficulty levels.
+        _difficulty (str): Selected difficulty level.
         _inventory (list): Player's inventory.
         _environment (str): String summarizing the changes in the environment.
         _current_page_number (int): Current page number.
@@ -30,16 +32,17 @@ class RokosMansion(IContract):
         page_actions (dict): Default page actions.
     """
 
-    def __init__(self, style: str = "Stephen King", country: str = "USA"):
+    def __init__(self, style: str = "Stephen King", country: str = "USA", difficulty: str = "Beginner"):
         """
         Initialize the RokosMansion contract.
 
         Args:
             style (str): Writing style. Defaults to "Stephen King".
             country (str): Country style. Defaults to "USA".
+            difficulty (str): Difficulty level. Defaults to "Beginner".
 
         Raises:
-            AssertionError: If the provided style or country is not allowed.
+            AssertionError: If the provided style, country, or difficulty is not allowed.
         """
         self._allowed_styles = ["Stephen King", "HP Lovecraft", "Clive Barker"]
         assert style in self._allowed_styles
@@ -47,6 +50,9 @@ class RokosMansion(IContract):
         self._allowed_countries = ['Andorra', 'Argentina', 'Brazil', 'España', 'Latvia', 'Portugal', 'Russia', 'Thailand', 'USA', 'Venezuela']
         assert country in self._allowed_countries
         self._country = country
+        self._allowed_difficulties = ['Beginner', 'Medium', 'Difficult']
+        assert difficulty in self._allowed_difficulties
+        self._difficulty = difficulty
 
         self._inventory = []  # list of strings
         self._environment = ""
@@ -212,7 +218,10 @@ Respond using ONLY the following format:
 
         The environment summary:
         {self._environment if self._environment else 'No changes in the environment.'}
-
+        
+        The difficulty level:
+        {self._difficulty}
+        
         And the user's prompt:
         "{prompt}"
 
@@ -235,12 +244,17 @@ Respond using ONLY the following format:
 
             The environment summary:
             {self._environment if self._environment else 'No changes in the environment.'}
-
+            
+            The difficulty level:
+            {self._difficulty}
+            
             And the user's action:
             "{prompt}"
 
             Determine the result of this action. If it leads to a new room, specify which room (page number) to move to.
             If it involves solving a puzzle, describe the attempt to solve it.
+            
+            Adjust the complexity and challenge of the puzzle based on the difficulty level.
 
             Respond in the following JSON format:
             {{
@@ -251,7 +265,7 @@ Respond using ONLY the following format:
             """
             action_result = await call_llm_with_principle(
                 action_result_prompt,
-                eq_principle="The response must be consistent with the game's logic, current state, inventory, and environment."
+                eq_principle="The response must be consistent with the game's logic, current state, inventory, environment, and difficulty level."
             )
             action_output = json.loads(action_result)
             
@@ -272,7 +286,10 @@ Respond using ONLY the following format:
 
             The environment summary:
             {self._environment if self._environment else 'No changes in the environment.'}
-
+            
+            The difficulty level:
+            {self._difficulty}
+            
             And the user's prompt:
             "{prompt}"
 
