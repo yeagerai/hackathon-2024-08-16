@@ -39,6 +39,8 @@ Also, web scraping is really hard given that most websites are dynamic and requi
 
 ## Integration with other Contracts
 
+Is there a way to call other contracts from the GenVM? We wanted to call other contracts to make investments on behalf of the user, like interacting with a Uniswap contract to buy a coin.
+
 # TODOs
 
 - [ ] Tweets are compared to the daily price change of the coin today, but we should compare it to the price change of the coin on the day the tweet was made
