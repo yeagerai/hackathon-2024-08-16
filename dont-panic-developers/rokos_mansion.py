@@ -21,7 +21,7 @@ class RokosMansion(IContract):
         _allowed_countries (list): List of allowed country styles.
         _country (str): Selected country style.
         _inventory (list): Player's inventory.
-        _prompt_history (list): History of prompts.
+        _environment (str): String summarizing the changes in the environment.
         _current_page_number (int): Current page number.
         _current_page (str): Current page content.
         page_text_gen (dict): Generated page text.
@@ -49,7 +49,7 @@ class RokosMansion(IContract):
         self._country = country
 
         self._inventory = []  # list of strings
-        self._prompt_history = []
+        self._environment = ""
         self._current_page_number = 1
         self._current_page = ""
         self.page_text_gen = {}
@@ -190,100 +190,111 @@ Respond using ONLY the following format:
         return self.page_actions_gen[self._current_page_number]
 
     async def do_prompt(self, prompt: str) -> str:
-            """
-            Process a user prompt and generate a response.
+        """
+        Process a user prompt and generate a response.
 
-            This method checks if the prompt matches any current actions and responds accordingly.
-            If the prompt doesn't match an action, it is treated as a question or environmental interaction.
+        This method checks if the prompt matches any current actions and responds accordingly.
+        If the prompt doesn't match an action, it is treated as a question or environmental interaction.
 
-            Args:
-                prompt (str): User prompt.
+        Args:
+            prompt (str): User prompt.
 
-            Returns:
-                str: Generated response.
-            """
-            self._prompt_history.append(prompt)
+        Returns:
+            str: Generated response.
+        """
+        # Check if the prompt matches any current actions
+        action_match_prompt = f"""
+        Given the current actions for this page:
+        {self.get_current_actions()}
 
-            # Check if the prompt matches any current actions
-            action_match_prompt = f"""
-            Given the current actions for this page:
-            {self.get_current_actions()}
+        The user's inventory:
+        {', '.join(self._inventory) if self._inventory else 'Empty'}
+
+        The environment summary:
+        {self._environment if self._environment else 'No changes in the environment.'}
+
+        And the user's prompt:
+        "{prompt}"
+
+        Determine if the user's prompt roughly matches any of the current actions.
+        Respond with only "true" if it matches, or "false" if it doesn't match.
+        """
+        action_match_result = await call_llm_with_principle(
+            action_match_prompt,
+            eq_principle="The response must be either 'true' or 'false' based on whether the prompt matches an action."
+        )
+        
+        if action_match_result.strip().lower() == "true":
+            # The prompt matches an action, so we need to move to another page/room or solve a puzzle
+            action_result_prompt = f"""
+            Given the current page description:
+            {self.get_current_page()}
 
             The user's inventory:
             {', '.join(self._inventory) if self._inventory else 'Empty'}
 
+            The environment summary:
+            {self._environment if self._environment else 'No changes in the environment.'}
+
+            And the user's action:
+            "{prompt}"
+
+            Determine the result of this action. If it leads to a new room, specify which room (page number) to move to.
+            If it involves solving a puzzle, describe the attempt to solve it.
+
+            Respond in the following JSON format:
+            {{
+                "result": str,
+                "new_page_number": int or null,
+                "puzzle_solved": bool or null
+            }}
+            """
+            action_result = await call_llm_with_principle(
+                action_result_prompt,
+                eq_principle="The response must be consistent with the game's logic, current state, inventory, and environment."
+            )
+            action_output = json.loads(action_result)
+            
+            if action_output["new_page_number"]:
+                self._current_page_number = action_output["new_page_number"]
+                await self.update_current_page()
+                await self.update_current_actions()
+            
+            return action_output["result"]
+        else:
+            # The prompt doesn't match an action, so we need to handle it as a question or environmental interaction
+            env_interaction_prompt = f"""
+            Given the current page description:
+            {self.get_current_page()}
+
+            The user's inventory:
+            {', '.join(self._inventory) if self._inventory else 'Empty'}
+
+            The environment summary:
+            {self._environment if self._environment else 'No changes in the environment.'}
+
             And the user's prompt:
             "{prompt}"
 
-            Determine if the user's prompt roughly matches any of the current actions.
-            Respond with only "true" if it matches, or "false" if it doesn't match.
-            """
-            action_match_result = await call_llm_with_principle(
-                action_match_prompt,
-                eq_principle="The response must be either 'true' or 'false' based on whether the prompt matches an action."
-            )
+            Determine how this prompt affects the environment or inventory. If it's a question, provide an appropriate answer.
             
-            if action_match_result.strip().lower() == "true":
-                # The prompt matches an action, so we need to move to another page/room or solve a puzzle
-                action_result_prompt = f"""
-                Given the current page description:
-                {self.get_current_page()}
-
-                The user's inventory:
-                {', '.join(self._inventory) if self._inventory else 'Empty'}
-
-                And the user's action:
-                "{prompt}"
-
-                Determine the result of this action. If it leads to a new room, specify which room (page number) to move to.
-                If it involves solving a puzzle, describe the attempt to solve it.
-
-                Respond in the following JSON format:
-                {{
-                    "result": str,
-                    "new_page_number": int or null,
-                    "puzzle_solved": bool or null
-                }}
-                """
-                action_result = await call_llm_with_principle(
-                    action_result_prompt,
-                    eq_principle="The response must be consistent with the game's logic, current state, and inventory."
-                )
-                action_output = json.loads(action_result)
-                
-                if action_output["new_page_number"]:
-                    self._current_page_number = action_output["new_page_number"]
-                    await self.update_current_page()
-                    await self.update_current_actions()
-                
-                return action_output["result"]
-            else:
-                # The prompt doesn't match an action, so we need to handle it as a question or environmental interaction
-                env_interaction_prompt = f"""
-                Given the current page description:
-                {self.get_current_page()}
-
-                The user's inventory:
-                {', '.join(self._inventory) if self._inventory else 'Empty'}
-
-                And the user's prompt:
-                "{prompt}"
-
-                Determine how this prompt affects the environment or inventory. If it's a question, provide an appropriate answer.
-
-                Respond in the following JSON format:
-                {{
-                    "result": str,
-                    "inventory_change": [str] or null
-                }}
-                """
-                env_result = await call_llm_with_principle(
-                    env_interaction_prompt,
-                    eq_principle="The response must be consistent with the game's current state, inventory, and logical within the game world."
-                )
-                env_output = json.loads(env_result)
-                
-                if env_output["inventory_change"]:
-                    self._inventory.extend(env_output["inventory_change"])
-                
-                return env_output["result"]
+            Respond in the following JSON format:
+            {{
+                "result": str,
+                "inventory_change": [str] or null,
+                "environment_change": str or null
+            }}
+            """
+            env_result = await call_llm_with_principle(
+                env_interaction_prompt,
+                eq_principle="The response must be consistent with the game's current state, inventory, environment, and logical within the game world."
+            )
+            env_output = json.loads(env_result)
+            
+            if env_output["inventory_change"]:
+                self._inventory.extend(env_output["inventory_change"])
+            
+            if env_output["environment_change"]:
+                self._environment += f" {env_output['environment_change']}"
+            
+            return env_output["result"]
