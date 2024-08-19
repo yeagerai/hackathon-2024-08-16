@@ -44,6 +44,8 @@ class GenLayerDAO(IContract):
         self.bounties: dict[int, Bounty] = {}
         self.next_bounty_id = 1
 
+        
+
         self.constitution = [
             "This Constitution describes the decision-making framework for GenLayerDAO governance.",
             "The following process governs the rules and procedures by which GenLayerDAO may propose, vote on, and implement Bounty Programs.",
@@ -72,9 +74,6 @@ class GenLayerDAO(IContract):
         if self.get_balance_of(proposer) == 0:
             raise InsufficientTokensException("Only DAO members can propose bounties.")
 
-        # Refine the bounty proposal
-        refined_description, refined_reward = await self.refine_bounty_details(bounty_proposal)
-
         prompt = f"""
 You are GenLayerDAO.
 
@@ -82,8 +81,7 @@ GenLayerDAO has a constitution:
 {json.dumps(self.constitution)}
 
 A user with address "{proposer}" has proposed a new bounty:
-Description: {refined_description}
-Reward: {refined_reward}
+Description: {bounty_proposal}
 
 Evaluate if this bounty proposal adheres to the constitution.
 Respond with the following JSON format:
@@ -102,6 +100,9 @@ This result should be perfectly parseable by a JSON parser without errors.
         output = self._get_decode_json_resilient(result)
 
         if output["proposal_accepted"]:
+            # Refine the bounty proposal
+            refined_description, refined_reward = await self.refine_bounty_details(bounty_proposal)        
+
             bounty = Bounty(self.next_bounty_id, refined_description, refined_reward, proposer)
             bounty.vote_snapshot = self.balances.copy()
             self.bounties[self.next_bounty_id] = bounty
@@ -220,7 +221,7 @@ This result should be perfectly parseable by a JSON parser without errors.
         output = self._get_decode_json_resilient(result)
         return min(output["reward_amount"], self.total_supply)  # Ensure reward doesn't exceed total supply
 
-    async def submit_bounty_proposal(self, bounty_id: int, submission: str) -> str:
+    async def claim_bounty(self, bounty_id: int, submission: str) -> str:
         submitter = contract_runner.from_address
         if bounty_id not in self.bounties:
             raise InvalidBountyException("Invalid bounty ID.")
