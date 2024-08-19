@@ -61,12 +61,32 @@ class RokosMansion(IContract):
         self.page_text_gen = {}
         self.page_actions_gen = {}
 
+        library = '''
+            The Library: The library is a vast room filled with towering bookshelves and strange devices. 
+            In the center, an ancient machine hums softly, connected to three mysterious boxes. Each box is labeled, but all labels are incorrect. 
+            One box contains only Poison, one contains only Antidote, and the last contains Both Poison and Antidote.
+            The puzzle asks you to pick one item from any box, knowing that the labels are wrong.
+            Solving this puzzle deactivates the ASIs device in the library and allows you to proceed.
+        '''
+        study = '''
+            The Study: The study is a small room filled with strange devices, a desk cluttered with blueprints and journals, and a glowing cube resting on the desk. 
+            The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI:
+            Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite.
+            The puzzle asks you to determine the truth of the statement: "Any person that is awake believes they are organic."
+            Solve it to deactivate the ASI’s device in the room.
+        '''
+        laboratory = '''
+        The Laboratory: A futuristic room where two robotic guards protect a vault containing either uranium, plutonium, or thorium.
+         Guard 1 (lying for uranium) says "The materials are either uranium or thorium," Guard 2 (lying for plutonium) 
+         says "The cave contains plutonium"; solve their statements to determine the correct radioactive material and sever the ASIs timeline connection.
+        '''
+
         self.page_text = {
             1: "Arrival at the Mansion: You are an engineer named Alex, invited to visit the mansion of Professor Roko, a notorious mad scientist known for dabbling in AI technology. Upon arrival, the mansion seems eerie, its large doors creaking open on their own. As you step inside, you feel a strange presence. A hologram of Professor Roko appears and reveals that he has made contact with a malicious artificial superintelligence (ASI) from the future. The ASI is sending cryptic messages and puzzles through devices scattered across the mansion.",
             2: "The Entrance Hall: You stand in the grand entrance hall of the mansion with several doors leading to different rooms. Roko's hologram reappears, urging you to hurry, as the ASI grows stronger by the minute. Your task is to solve three logical puzzles hidden within the mansion to weaken the ASI's influence. However, you can explore the rooms to gather information and insights.",
-            3: "The Library: The library is a vast room filled with towering bookshelves and strange devices. In the center, an ancient machine hums softly, connected to three mysterious boxes. Each box is labeled, but all labels are incorrect. One box contains only **Poison**, one contains only **Antidote**, and the last contains **Both Poison and Antidote**. The puzzle asks you to pick one item from any box, knowing that the labels are wrong. For example, if you pick from the box labeled 'Both Poison and Antidote,' whatever you pull will reveal how to correctly label all three boxes. Solving this puzzle deactivates the ASI’s device in the library and allows you to proceed.",
-            4: "The Study: The study is a small room filled with strange devices, a desk cluttered with blueprints and journals, and a glowing cube resting on the desk. The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI: Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite. The puzzle asks you to determine the truth of the statement: 'Any person that is awake believes they are organic.' Solve it to deactivate the ASI’s device in the room.",
-            5: "The Laboratory: A futuristic room where two robotic guards protect a vault containing either uranium, plutonium, or thorium; Guard 1 (lying for uranium) says 'The materials are either uranium or thorium,' Guard 2 (lying for plutonium) says 'The cave contains plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection.",
+            3: library,
+            4: study,
+            5: laboratory,
             6: "Professor Roko's Dormitory: The dormitory is cluttered with books, blueprints, and gadgets. Professor Roko's hologram stands in the center, offering cryptic insights about the ASI, the puzzles, and how to defeat the ASI.",
             7: "The Dining Hall: The dining hall is lavish but abandoned, with a long table covered in untouched dishes. There are no puzzles here, but there are clues about AI developments and future dangers.",
             8: "The Upstairs Hallway: The hallway is dark with paintings of futuristic cities on the walls. Faint mechanical sounds can be heard from one of the rooms. Several doors line the hall, but only one is unlocked.",
