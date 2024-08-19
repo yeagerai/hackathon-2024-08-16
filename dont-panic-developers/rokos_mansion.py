@@ -1,3 +1,4 @@
+
 """
 Module: RokosMansion
 Description: Implements the RokosMansion game contract.
@@ -21,7 +22,6 @@ class RokosMansion(IContract):
         _allowed_countries (list): List of allowed country styles.
         _country (str): Selected country style.
         _allowed_difficulties (list): List of allowed difficulty levels.
-        _difficulty (str): Selected difficulty level.
         _inventory (list): Player's inventory.
         _environment (str): String summarizing the changes in the environment.
         _current_page_number (int): Current page number.
@@ -32,7 +32,7 @@ class RokosMansion(IContract):
         page_actions (dict): Default page actions.
     """
 
-    def __init__(self, style: str = "Stephen King", country: str = "USA", difficulty: str = "Beginner"):
+    def __init__(self, style: str = "Stephen King", country: str = "USA"):
         """
         Initialize the RokosMansion contract.
 
@@ -62,7 +62,7 @@ class RokosMansion(IContract):
         self.page_actions_gen = {}
 
         self.page_text = {
-            1: "Action: Explore the mansion, enter the mansion entrance hall and solve the puzzles to prevent the ASI from taking control of your world.",
+            1: "Arrival at the Mansion: You are an engineer named Alex, invited to visit the mansion of Professor Roko, a notorious mad scientist known for dabbling in AI technology. Upon arrival, the mansion seems eerie, its large doors creaking open on their own. As you step inside, you feel a strange presence. A hologram of Professor Roko appears and reveals that he has made contact with a malicious artificial superintelligence (ASI) from the future. The ASI is sending cryptic messages and puzzles through devices scattered across the mansion.",
             2: "The Entrance Hall: You stand in the grand entrance hall of the mansion with several doors leading to different rooms. Roko's hologram reappears, urging you to hurry, as the ASI grows stronger by the minute. Your task is to solve three logical puzzles hidden within the mansion to weaken the ASI's influence. However, you can explore the rooms to gather information and insights.",
             3: "The Library: The library is vast with towering bookshelves and strange devices scattered across the room. In the center is an ancient-looking machine emitting a low hum. Three mysterious boxes sit before the machine, each labeled with cryptic symbols. The labels on the boxes are all incorrect, and you must deduce the correct labels to deactivate the ASI's control in the room.",
             4: "The Study: The study is a small room filled with strange devices and a desk with blueprints and journals. A glowing cube rests on the desk, and the room's puzzle involves analyzing a statement about Organics and Synthetics to deactivate the ASI's device.",
@@ -75,7 +75,7 @@ class RokosMansion(IContract):
             11: "Victory!: After solving all the puzzles, you return to Professor Roko's study where the ASI's connection is permanently severed. The devices go dark, and you leave the mansion victorious, having saved the future."
         }
         self.page_actions = {
-            1: "Action: Explore the mansion and solve the puzzles to prevent the ASI from taking control of your world.",
+            1: "Action: Explore the mansion, enter the mansion entrance hall and solve the puzzles to prevent the ASI from taking control of your world.",
             2: "Action: Choose a door: Left (Library), Center (Laboratory), Right (Study), Door leading to Professor Roko's personal study, Staircase to the upper floor.",
             3: "Action: Choose the correct box and step through the portal and return to the entrance hall. Now you must decide which room to explore next: Center (Laboratory), Right (Study), Professor Roko's Personal Study.",
             4: "Action: Analyze the statement and determine if it is true or false. Correct it if necessary to deactivate the ASI's device. Return to the entrance hall: Left (Library), Center (Laboratory), Professor Roko's Personal Study.",
@@ -129,7 +129,7 @@ class RokosMansion(IContract):
         based on the writer's style, country style, inventory, and original page scenario.
         """
         prompt = f"""
-Generate a very brief but vivid scenario description for the current page in the "Mansion of Professor Roko" game. Use the following context:
+Generate a very brief but vivid scenario description (in 3 short sentences) for the current page in the "Mansion of Professor Roko" game. Use the following context:
 
 1. Writer Style: {self._style}
 2. Country Style: {self._country}
@@ -208,6 +208,9 @@ Respond using ONLY the following format:
         Returns:
             str: Generated response.
         """
+        room_mapping = {k: v.split(':')[0].strip() for k, v in self.page_text.items()}
+        room_mapping_str = '\n'.join(f"{v} (Page {k})" for k, v in room_mapping.items())
+
         # Check if the prompt matches any current actions
         action_match_prompt = f"""
         Given the current actions for this page:
@@ -222,6 +225,9 @@ Respond using ONLY the following format:
         The difficulty level:
         {self._difficulty}
         
+        The current room:
+        {room_mapping[self._current_page_number]} (Page {self._current_page_number})
+        
         And the user's prompt:
         "{prompt}"
 
@@ -235,6 +241,7 @@ Respond using ONLY the following format:
         
         if action_match_result.strip().lower() == "true":
             # The prompt matches an action, so we need to move to another page/room or solve a puzzle
+            print('DEBUG: # The prompt matches an action, so we need to move to another page/room or solve a puzzle')
             action_result_prompt = f"""
             Given the current page description:
             {self.get_current_page()}
@@ -245,18 +252,16 @@ Respond using ONLY the following format:
             The environment summary:
             {self._environment if self._environment else 'No changes in the environment.'}
             
-            The difficulty level:
-            {self._difficulty}
-            
             And the user's action:
             "{prompt}"
 
+            All rooms in the game:
+            {room_mapping_str}
+        
             Determine the result of this action. If it leads to a new room, specify which room (page number) to move to.
-            If it involves solving a puzzle, describe the attempt to solve it.
+            If it involves solving a puzzle, describe the attempt to solve it (true, false, null).
             
-            Adjust the complexity and challenge of the puzzle based on the difficulty level.
-
-            Respond in the following JSON format:
+            Respond using ONLY the following JSON format:
             {{
                 "result": str,
                 "new_page_number": int or null,
@@ -271,12 +276,13 @@ Respond using ONLY the following format:
             
             if action_output["new_page_number"]:
                 self._current_page_number = action_output["new_page_number"]
-                await self.update_current_page()
-                await self.update_current_actions()
+                #await self.update_current_page()
+                #await self.update_current_actions()
             
             return action_output["result"]
         else:
             # The prompt doesn't match an action, so we need to handle it as a question or environmental interaction
+            print("DEBUG: # The prompt doesn't match an action, so we need to handle it as a question or environmental interaction")
             env_interaction_prompt = f"""
             Given the current page description:
             {self.get_current_page()}
@@ -295,7 +301,7 @@ Respond using ONLY the following format:
 
             Determine how this prompt affects the environment or inventory. If it's a question, provide an appropriate answer.
             
-            Respond in the following JSON format:
+            Respond using ONLY the following JSON format:
             {{
                 "result": str,
                 "inventory_change": [str] or null,
