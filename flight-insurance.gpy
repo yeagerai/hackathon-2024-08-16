@@ -2,39 +2,47 @@ import json
 from backend.node.genvm.icontract import IContract
 from backend.node.genvm.equivalence_principle import EquivalencePrinciple
 
+# Flight Insurance Intelligent Contract is a contract that allows passengers to buy insurance for their flights.
+# The contract is created by the insurance manager for specific flight 
+# and the passengers can buy insurance for this specific flight.
+# The contract has a method to check the flight status from an independent source of information
+# and a method to claim the insurance in case the flight is delayed.
+# The payment is done by the insurance manager to the passengers in case the flight is delayed.
+# Passenger does not need to trust on the insurance manager to get the payment.
 class FlightInsurance(IContract):
 
-    # def __init__(self, _flight_number: str, _flight_date: str, _flight_time: str, _flight_from: str, _flight_to: str, _num_passengers_paid_insurance: int, _insurance_value_per_passenger: int):
-    #     self.flight_number = _flight_number
-    #     self.num_passengers_paid_insurance = _num_passengers_paid_insurance
-    #     self.flight_arrival_delayed = False
-    #     self.flight_date = _flight_date
-    #     self.flight_time = _flight_time
-    #     self.flight_from = _flight_from
-    #     self.flight_to = _flight_to
-    #     self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" 
-    #     self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" 
-    #     self.resolution_url = self.resolution_url + self.flight_from + "/" + self.flight_to
-    #     self.loss_payment_value_per_passenger = _insurance_value_per_passenger
-    #     self.balances = {}
-    #     self.balances[contract_runner.from_address] = _num_passengers_paid_insurance*_insurance_value_per_passenger
-    #     self.insurance_manager = contract_runner.from_address
-    
-    def __init__(self):
-        self.flight_number = "TAP457"
-        self.num_passengers_paid_insurance = 35
+    def __init__(self, _flight_number: str, _flight_date: str, _flight_time: str, _flight_from: str, _flight_to: str, _num_passengers_paid_insurance: int, _insurance_value_per_passenger: int):
+        self.flight_number = _flight_number
+        self.num_passengers_paid_insurance = _num_passengers_paid_insurance
         self.flight_arrival_delayed = False
-        self.flight_date = "20240818"
-        self.flight_time = "0510Z"
-        self.flight_from = "LFPO"
-        self.flight_to = "LPPR"
+        self.flight_date = _flight_date
+        self.flight_time = _flight_time
+        self.flight_from = _flight_from
+        self.flight_to = _flight_to
         self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" 
         self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" 
         self.resolution_url = self.resolution_url + self.flight_from + "/" + self.flight_to
-        self.loss_payment_value_per_passenger = 30
+        self.loss_payment_value_per_passenger = _insurance_value_per_passenger
         self.balances = {}
-        self.balances[contract_runner.from_address] = self.loss_payment_value_per_passenger*self.loss_payment_value_per_passenger
+        self.balances[contract_runner.from_address] = _num_passengers_paid_insurance*_insurance_value_per_passenger
         self.insurance_manager = contract_runner.from_address
+    
+    # Example of constructor with hardcoded values to save time in the testing
+    # def __init__(self):
+    #     self.flight_number = "TAP457"
+    #     self.num_passengers_paid_insurance = 35
+    #     self.flight_arrival_delayed = False
+    #     self.flight_date = "20240818"
+    #     self.flight_time = "0510Z"
+    #     self.flight_from = "LFPO"
+    #     self.flight_to = "LPPR"
+    #     self.resolution_url = "https://flightaware.com/live/flight/" + self.flight_number  + "/history/" 
+    #     self.resolution_url = self.resolution_url + self.flight_date + "/" + self.flight_time + "/" 
+    #     self.resolution_url = self.resolution_url + self.flight_from + "/" + self.flight_to
+    #     self.loss_payment_value_per_passenger = 30
+    #     self.balances = {}
+    #     self.balances[contract_runner.from_address] = self.loss_payment_value_per_passenger*self.loss_payment_value_per_passenger
+    #     self.insurance_manager = contract_runner.from_address
 
     async def ask_for_flight_status(self) -> None:
         print("calling the page: " + self.resolution_url)
@@ -65,31 +73,27 @@ your output must be only JSON without any formatting prefix or suffix.
 This result should be perfectly parseable by a JSON parser without errors.
 """
             result = await eq.call_llm(prompt)
-            print(" ")
+            print("********************************")
             print("result: ")
             print(result)     
-            print(" ")
-            print(" ")   
+            print("================================")   
             result_clean = result.replace("True", "true").replace("False", "false")
-            print(" ")
+            print("********************************")
             print("result_clean: ")
             print(result_clean)
-            print(" ")
-            print(" ")   
+            print("================================")   
             eq.set(result_clean)
             output = json.loads(result_clean)
-            print(" ")
+            print("********************************")
             print("output: ")
             print(output["arrivalstatus"])
-            print(" ")
-            print(" ")  
+            print("================================")   
             if output["arrivalstatus"] is True:
                 self.flight_arrival_delayed = True
-                print(" ")
+                print("********************************")
                 print("flight_arrival_delayed: ")
                 print(self.flight_arrival_delayed)
-                print(" ")
-                print(" ")  
+                print("================================")
     
     def add_passenger(self, _passenger_address:str) ->None:
         self.balances[_passenger_address] = 0
@@ -97,6 +101,7 @@ This result should be perfectly parseable by a JSON parser without errors.
     def insurance_claim(self, _passenger_address:str) ->None:
         if self.flight_arrival_delayed is True:
             if _passenger_address in self.balances:
+              if self.balances[_passenger_address] == 0:
                 self.balances[_passenger_address] = self.loss_payment_value_per_passenger
                 self.balances[self.insurance_manager] = (self.balances[self.insurance_manager]-self.loss_payment_value_per_passenger)
 
