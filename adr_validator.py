@@ -50,17 +50,17 @@ class ADRValidator(IContract):
 
     async def validate_adr(self, adr: str, category_name: str) -> None:
         print("validate")
-        if not self._check_template(adr):
-            return
+        # if not self._check_template(adr): return
         output = await self._evaluate_adr(adr, category_name)
 
         ## Improvement: would split checks more by concern
         if not output["accepted"]:
             return
 
-        self.balances[contract_runner.from_address] += (
-            self.balances[contract_runner.from_address] + output["reward"]
-        )
+        if contract_runner.from_address not in self.balances:
+            self.balances[contract_runner.from_address] = 0
+
+        self.balances[contract_runner.from_address] += output["reward"]
         self.arch_categories[category_name]["ADRs"].append(adr)
 
     def _check_template(self, adr: str) -> bool:
