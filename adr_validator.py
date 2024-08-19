@@ -1,95 +1,103 @@
-import re
 import json
+import re
 from backend.node.genvm.icontract import IContract
 from backend.node.genvm.equivalence_principle import call_llm_with_principle
+
 
 class ADRValidator(IContract):
     def __init__(self):
         self.owner = contract_runner.from_address
-        self.arch_categories = {} # {"genvm": {"description":"", "ADRs":["","",""]}, "consensus":...}
-        
-    def change_owner(self, new_owner:str):
+        self.arch_categories = {}
+        self.balances = {}
+        self.max_reward = 10
+
+    def change_owner(self, new_owner: str):
         if contract_runner.from_address == self.owner:
             self.owner = new_owner
+
+    def set_max_reward(self, new_max_reward: int):
+        if contract_runner.from_address == self.owner:
+            self.max_reward = new_max_reward
 
     def get_owner(self) -> str:
         return self.owner
 
     def get_categories(self) -> str:
-        return {category: details["description"] for category, details in self.arch_categories.items()}
+        return {
+            category: details["description"]
+            for category, details in self.arch_categories.items()
+        }
 
     def get_adrs_of_a_category(self, category_name: str) -> dict:
-            if category_name in self.arch_categories:
-                return self.arch_categories[category_name]["ADRs"]
+        if category_name in self.arch_categories:
+            return self.arch_categories[category_name]["ADRs"]
 
-    ## Improvement: LLM fuzzy matching categories to warn about potential duplicates potentially using vectorDB
+    def get_balances(self) -> dict[str, int]:
+        return self.balances
+
+    def get_balance_of(self, address: str) -> int:
+        return self.balances.get(address, 0)
+
     def add_category(self, category_name: str, category_description: str):
-        if contract_runner.from_address == self.owner and category_name not in self.arch_categories:
-            self.arch_categories[f"{category_name}"] = {"description": category_description, "ADRs": []}
+        if (
+            contract_runner.from_address == self.owner
+            and category_name not in self.arch_categories
+        ):
+            self.arch_categories[f"{category_name}"] = {
+                "description": category_description,
+                "ADRs": [],
+            }
 
     async def validate_adr(self, adr: str, category_name: str) -> None:
         print("validate")
-        if not self._check_template(adr): return
-        if not self._check_decisions(adr): return
+        if not self._check_template(adr):
+            return
+        output = await self._evaluate_adr(adr, category_name)
+
+        ## Improvement: would split checks more by concern
+        if not output["accepted"]:
+            return
+
+        self.balances[contract_runner.from_address] += (
+            self.balances[contract_runner.from_address] + output["reward"]
+        )
         self.arch_categories[category_name]["ADRs"].append(adr)
 
     def _check_template(self, adr: str) -> bool:
-        print("check_template")
-        pattern = r"""
-        ^\#\s[^\n]+?\n
-        (?:-\sStatus:\s[^\n]+?\n)+
-        (?:-\sDeciders:\s[^\n]+?\n)+
-        (?:-\sDate:\s[^\n]+?\n)+
-        
-        \#\#\sContext\sand\sProblem\sStatement\s*
-        (?:.*?\n)+
-
-        \#\#\sDecision\sDrivers\s*
-        (?:-\s[^\n]+?\n)+
-
-        \#\#\sConsidered\sOptions\s*
-        (?:-\s[^\n]+?\n)+
-
-        \#\#\sDecision\sOutcome\s*
-        (?:Chosen\soption:\s[^\n]+?\n)+
-        
-        \#\#\#\sConsequences\s*
-        (?:-\s\*\*[^\*]+?\*\*:\s[^\n]+?\n)+
-
-        \#\#\sPros\sand\sCons\sof\sthe\sOptions\s*
-        (?:\#\#\#\s[^\n]+?\n
-        (?:\n|\s)+
-        \#\#\#\#\sPros:\s*
-        (?:-\s\*\*[^\*]+?\*\*:\s[^\n]+?\n)+
-        \#\#\#\#\sCons:\s*
-        (?:-\s\*\*[^\*]+?\*\*:\s[^\n]+?\n)+)+
-        """
-
-        result = bool(re.match(re.compile(pattern, re.VERBOSE | re.DOTALL), adr))
-        print("template result:", result)
+        adr = adr.replace("\r\n", "\n").replace("\r", "\n")
+        pattern = r"^\# [^\n]+?\n+(- Status: (proposed|accepted|validated).+)\n+(- Deciders: [^\n]+)\n+(- Date: \d\d\d\d-\d\d-\d\d)\n+(\#\# Context and Problem Statement)\n+(\#\#\#\# Problem\n+(.|\n)*)+(\#\#\#\# Context\n+(.|\n)*)+(\#\# Decision Drivers+(.|\n)*)+(\#\# Considered Options+(.|\n)*)+(\#\# Decision Outcome+(.|\n)*)+(\#\#\# Consequences+(.|\n)*)+(\#\# Pros and Cons of the Options+(.|\n)*)+(\#\#\#(.|\n)*)+(\#\#\#\# Pros+(.|\n)*)+(\#\#\#\# Cons+(.|\n)*)+(\#\#\#(.|\n)*)+(\#\#\#\# Pros+(.|\n)*)+(\#\#\#\# Cons+(.|\n)*)"
+        compiled_pattern = re.compile(pattern, re.MULTILINE | re.DOTALL)
+        result = bool(compiled_pattern.match(adr))
+        print("Result of checking template structure: ", result)
         return result
 
-    async def _check_decisions(self, adr: str) -> bool:
-        print("check_decisions")
+    async def _evaluate_adr(self, adr: str, category: str) -> object:
+        print("Evaluating ADR...")
         valid_decisions = False
         prompt = f"""
-        Here are some dispute resolutions made in the past, and a new decision candidate.
-        You must check past decisions for contradiction with the new candidate, or for dependencies that would block this candidate.
+        Here are some architecture decisions made in the past, and a new decision candidate.
+        You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
 
         - Past decisions:
-        {self.arch_categories}
+        {self.arch_categories[category]['ADRs']}
 
         - New decision candidate:
         {adr}
 
         You must decide if the new decision can be accepted or if it should be rejected.
-        In case of rejection, you must also provide a reason for the rejection.
-        In case of acceptance, the reason should be an empty string.
+
+        In case of rejection:
+        - You MUST provide a REASON for the rejection.
+
+        In case of acceptance:
+        - The REASON should be an EMPTY STRING.
+        - You MUST decide of a REWARD (INTEGER) between 1 and {self.max_reward}. Evaluate the reward based on the potential impact, importance, and writing quality of the candidate.
 
         Respond ONLY with the following format:
         {{
+        "accepted": bool,
         "reasoning": str,
-        "accepted": bool
+        "reward": int,
         }}
         It is mandatory that you respond only using the JSON format above,
         nothing else. Don't include any other words or characters,
@@ -104,7 +112,5 @@ class ADRValidator(IContract):
         output = json.loads(result_clean)
 
         print(output)
-        if output["accepted"] is True:
-            return True
-        else:
-            return False
+
+        return output
