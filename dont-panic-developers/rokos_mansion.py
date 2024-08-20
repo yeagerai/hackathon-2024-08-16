@@ -61,6 +61,7 @@ class RokosMansion(IContract):
         self.page_puzzles[4] = "The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI: Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite. The puzzle asks you to determine the truth of the statement: 'Any person that is awake believes they are organic.' Solve it to deactivate the ASI’s device in the room."
         self.page_puzzles[5] = "Guard 1 (lying for uranium) says 'The materials are either uranium or thorium,' Guard 2 (lying for plutonium) says 'The secret material is plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection."
 
+        self.page_puzzles_action = {}
         self.page_puzzles_action[3] = " To solve this puzzle you must choose ONLY one box and be logically consistent with the conditions.",
         self.page_puzzles_action[4] = " To solve this puzzle you must clearly say is the statement <Any person that is awake believes they are organic.> is true or false, and be logically consistent with the puzzle conditions."
         self.page_puzzles_acion[5] = "To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said."
