@@ -55,6 +55,9 @@ class RokosMansion(IContract):
         self._current_page = ""
         self.page_text_gen = {}
         self.page_actions_gen = {}
+        self.puzzles_solved = []
+        self.puzzles_for_victory = 3
+        self.victory_page = 11
 
         self.page_puzzles = {}
         self.page_puzzles[3] = "Each box is labeled, but all labels are incorrect. One box contains only **Poison**, one contains only **Antidote**, and the last contains **Both Poison and Antidote**. The puzzle asks you to pick one item from any box, knowing that the labels are wrong. For example, if you pick from the box labeled 'Both Poison and Antidote,' whatever you pull will reveal how to correctly label all three boxes. Solving this puzzle deactivates the ASI’s device in the library and allows you to proceed.",
@@ -89,22 +92,22 @@ class RokosMansion(IContract):
             7: "Action: Explore the room and read the newspaper. Return to the Entrance Hall or proceed to another room.",
             8: "Action: Explore the hallway. Enter the unlocked room or return downstairs.",
             9: "Action: Read Professor Roko's journal. Return to the Entrance Hall or explore another part of the mansion.",
-            10: "Action: Return to the Entrance Hall and select a different room to explore. Gather clues or explore the mansion.",
+            10: "Action: Return to the Entrance Hall and select a different room to explore. Gather clues or explore the mansion. Choose a door: Left (Library), Center (Laboratory), Right (Study), Door leading to Professor Roko's personal study, Staircase to the upper floor.",
             11: "Action: Exit the mansion, completing your journey as the savior of the future. You've won the game!"
         }
 
-    def update_current_page(self) -> str:
-        """
-        Update the current page content.
-
-        Returns:
-            str: Updated current page content.
-        """
-        if self._current_page_number not in self.page_text_gen:
-            self.page_text_gen[self._current_page_number] = self._current_page
-        self._current_page = self.page_text_gen[self._current_page_number]
-
-        return self._current_page
+#    def update_current_page(self) -> str:
+#        """
+#        Update the current page content.
+#
+#        Returns:
+#            str: Updated current page content.
+#        """
+#        if self._current_page_number not in self.page_text_gen:
+#            self.page_text_gen[self._current_page_number] = self._current_page
+#        self._current_page = self.page_text_gen[self._current_page_number]
+#
+#        return self._current_page
 
     def get_current_page(self) -> str:
         """
@@ -133,6 +136,9 @@ class RokosMansion(IContract):
         This method generates a detailed scenario description for the current page
         based on the writer's style, country style, inventory, and original page scenario.
         """
+        if self._current_page_number in self.page_text_gen:
+            return
+
         prompt = f"""
 Generate a very brief but vivid scenario description (in 3 short sentences) for the current page in the "Mansion of Professor Roko" game. Use the following context:
 
@@ -165,6 +171,8 @@ Respond using ONLY the following format:
         This method generates brief and concise descriptions for the actions available
         on the current page based on the writer's style, country style, and inventory.
         """
+        if self._current_page_number in self.page_actions_gen:
+            return
         prompt = f"""
 Generate brief and concise descriptions for the actions available on the current page of the "Mansion of Professor Roko" game. Use the following context:
 
@@ -216,6 +224,8 @@ Respond using ONLY the following format:
         Returns:
             str: Generated response.
         """
+        assert self._current_page_number != self.victory_page
+
         room_mapping = {k: v.split(':')[0].strip() for k, v in self.page_text.items()}
         room_mapping_str = '\n'.join(f"{v} (Page {k})" for k, v in room_mapping.items())
 
@@ -266,6 +276,8 @@ Respond using ONLY the following format:
         
             Determine the result of this action. If it leads to a new room, specify which room (page number) to move to.
             If it involves solving a puzzle, describe the attempt to solve it (true, false, null).
+            If the action was an attempt to solve a puzzle do not move to different room.
+            If the action was trying to move to another room, change the room number if applicable.
             
             Respond using ONLY the following JSON format:
             {{
@@ -280,11 +292,15 @@ Respond using ONLY the following format:
             )
             action_output = json.loads(action_result)
             
-            if action_output["new_page_number"]:
-                self._current_page_number = action_output["new_page_number"]
-                #await self.update_current_page()
-                #await self.update_current_actions()
+            if action_output["puzzle_solved"]:
+                if not self._current_page_number in self.puzzles_solved:
+                    self.puzzles_solved.append( self._current_page_number )
             
+            if len(self.puzzles_solved) >= self.puzzles_for_victory:
+                self._current_page_number = self.victory_page
+            elif action_output["new_page_number"]:
+                self._current_page_number = action_output["new_page_number"]
+
             return action_output["result"]
         else:
             # The prompt doesn't match an action, so we need to handle it as a question or environmental interaction
