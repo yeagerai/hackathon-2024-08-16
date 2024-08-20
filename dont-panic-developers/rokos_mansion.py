@@ -21,7 +21,6 @@ class RokosMansion(IContract):
         _style (str): Selected writing style.
         _allowed_countries (list): List of allowed country styles.
         _country (str): Selected country style.
-        _allowed_difficulties (list): List of allowed difficulty levels.
         _inventory (list): Player's inventory.
         _environment (str): String summarizing the changes in the environment.
         _current_page_number (int): Current page number.
@@ -39,21 +38,17 @@ class RokosMansion(IContract):
         Args:
             style (str): Writing style. Defaults to "Stephen King".
             country (str): Country style. Defaults to "USA".
-            difficulty (str): Difficulty level. Defaults to "Beginner".
 
         Raises:
-            AssertionError: If the provided style, country, or difficulty is not allowed.
+            AssertionError: If the provided style, country is not allowed.
         """
-        self._allowed_styles = ["Stephen King", "HP Lovecraft", "Clive Barker"]
+        self._allowed_styles = ["Stephen King", "HP Lovecraft", "Clive Barker", "Yukio Mishima"]
         assert style in self._allowed_styles
         self._style = style
-        self._allowed_countries = ['Andorra', 'Argentina', 'Brazil', 'España', 'Latvia', 'Portugal', 'Russia', 'Thailand', 'USA', 'Venezuela']
+        self._allowed_countries = ['Andorra', 'Argentina', 'Brazil', 'España', 'Latvia', 'Portugal', 'Russia', 'Thailand', 'USA', 'Venezuela','Japan']
         assert country in self._allowed_countries
         self._country = country
-        self._allowed_difficulties = ['Beginner', 'Medium', 'Difficult']
-        assert difficulty in self._allowed_difficulties
-        self._difficulty = difficulty
-
+ 
         self._inventory = []  # list of strings
         self._environment = ""
         self._current_page_number = 1
@@ -61,32 +56,21 @@ class RokosMansion(IContract):
         self.page_text_gen = {}
         self.page_actions_gen = {}
 
-        library = '''
-            The Library: The library is a vast room filled with towering bookshelves and strange devices. 
-            In the center, an ancient machine hums softly, connected to three mysterious boxes. Each box is labeled, but all labels are incorrect. 
-            One box contains only Poison, one contains only Antidote, and the last contains Both Poison and Antidote.
-            The puzzle asks you to pick one item from any box, knowing that the labels are wrong.
-            Solving this puzzle deactivates the ASIs device in the library and allows you to proceed.
-        '''
-        study = '''
-            The Study: The study is a small room filled with strange devices, a desk cluttered with blueprints and journals, and a glowing cube resting on the desk. 
-            The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI:
-            Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite.
-            The puzzle asks you to determine the truth of the statement: "Any person that is awake believes they are organic."
-            Solve it to deactivate the ASI’s device in the room.
-        '''
-        laboratory = '''
-        The Laboratory: A futuristic room where two robotic guards protect a vault containing either uranium, plutonium, or thorium.
-         Guard 1 (lying for uranium) says "The materials are either uranium or thorium," Guard 2 (lying for plutonium) 
-         says "The cave contains plutonium"; solve their statements to determine the correct radioactive material and sever the ASIs timeline connection.
-        '''
+        self.page_puzzles = {}
+        self.page_puzzles[3] = "Each box is labeled, but all labels are incorrect. One box contains only **Poison**, one contains only **Antidote**, and the last contains **Both Poison and Antidote**. The puzzle asks you to pick one item from any box, knowing that the labels are wrong. For example, if you pick from the box labeled 'Both Poison and Antidote,' whatever you pull will reveal how to correctly label all three boxes. Solving this puzzle deactivates the ASI’s device in the library and allows you to proceed.",
+        self.page_puzzles[4] = "The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI: Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite. The puzzle asks you to determine the truth of the statement: 'Any person that is awake believes they are organic.' Solve it to deactivate the ASI’s device in the room."
+        self.page_puzzles[5] = "Guard 1 (lying for uranium) says 'The materials are either uranium or thorium,' Guard 2 (lying for plutonium) says 'The secret material is plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection."
+
+        self.page_puzzles_action[3] = " To solve this puzzle you must choose ONLY one box and be logically consistent with the conditions.",
+        self.page_puzzles_action[4] = " To solve this puzzle you must clearly say is the statement <Any person that is awake believes they are organic.> is true or false, and be logically consistent with the puzzle conditions."
+        self.page_puzzles_acion[5] = "To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said."
 
         self.page_text = {
             1: "Arrival at the Mansion: You are an engineer named Alex, invited to visit the mansion of Professor Roko, a notorious mad scientist known for dabbling in AI technology. Upon arrival, the mansion seems eerie, its large doors creaking open on their own. As you step inside, you feel a strange presence. A hologram of Professor Roko appears and reveals that he has made contact with a malicious artificial superintelligence (ASI) from the future. The ASI is sending cryptic messages and puzzles through devices scattered across the mansion.",
             2: "The Entrance Hall: You stand in the grand entrance hall of the mansion with several doors leading to different rooms. Roko's hologram reappears, urging you to hurry, as the ASI grows stronger by the minute. Your task is to solve three logical puzzles hidden within the mansion to weaken the ASI's influence. However, you can explore the rooms to gather information and insights.",
-            3: library,
-            4: study,
-            5: laboratory,
+            3: "The Library: The library is a vast room filled with towering bookshelves and strange devices. In the center, an ancient machine hums softly, connected to three mysterious boxes.",
+            4: "The Study: The study is a small room filled with strange devices, a desk cluttered with blueprints and journals, and a glowing cube resting on the desk.",
+            5: "The Laboratory: A futuristic room where two robotic guards protect a vault containing either uranium, plutonium, or thorium .", 
             6: "Professor Roko's Dormitory: The dormitory is cluttered with books, blueprints, and gadgets. Professor Roko's hologram stands in the center, offering cryptic insights about the ASI, the puzzles, and how to defeat the ASI.",
             7: "The Dining Hall: The dining hall is lavish but abandoned, with a long table covered in untouched dishes. There are no puzzles here, but there are clues about AI developments and future dangers.",
             8: "The Upstairs Hallway: The hallway is dark with paintings of futuristic cities on the walls. Faint mechanical sounds can be heard from one of the rooms. Several doors line the hall, but only one is unlocked.",
@@ -156,6 +140,7 @@ Generate a very brief but vivid scenario description (in 3 short sentences) for 
 3. Inventory: {', '.join(self._inventory) if self._inventory else 'Empty'}
 4. Page Scenario: {self.page_text[self._current_page_number]}
 
+
 Create a very brief but vivid and immersive description that incorporates elements of the specified writer's style, cultural elements from the given country, mentions any items in the characters inventory, and based on the original page scenario. The description should be be brief but consistent with the original context while adding color and atmosphere.
 
 Respond using ONLY the following format:
@@ -169,6 +154,8 @@ Respond using ONLY the following format:
         )
         output = json.loads(result)
         self.page_text_gen[self._current_page_number] = output["description"]
+        if self._current_page_number in self.page_puzzles:
+           self.page_text_gen[self._current_page_number] += '\n\n' + self.page_puzzles[self._current_page_number] 
 
     async def update_current_actions(self):
         """
@@ -242,21 +229,19 @@ Respond using ONLY the following format:
         The environment summary:
         {self._environment if self._environment else 'No changes in the environment.'}
         
-        The difficulty level:
-        {self._difficulty}
-        
         The current room:
         {room_mapping[self._current_page_number]} (Page {self._current_page_number})
         
         And the user's prompt:
         "{prompt}"
 
-        Determine if the user's prompt roughly matches any of the current actions.
+        Determine if the user's prompt roughly matches any of the current actions, or matches 
+        the action of trying to solve a present puzzle if there is a puzzle present. 
         Respond with only "true" if it matches, or "false" if it doesn't match.
         """
         action_match_result = await call_llm_with_principle(
             action_match_prompt,
-            eq_principle="The response must be either 'true' or 'false' based on whether the prompt matches an action."
+            eq_principle="The response must be either 'true' or 'false' based on whether the prompt matches an action (including an attemp to solve a puzzle if present)."
         )
         
         if action_match_result.strip().lower() == "true":
@@ -312,9 +297,6 @@ Respond using ONLY the following format:
 
             The environment summary:
             {self._environment if self._environment else 'No changes in the environment.'}
-            
-            The difficulty level:
-            {self._difficulty}
             
             And the user's prompt:
             "{prompt}"
