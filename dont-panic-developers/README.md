@@ -1,4 +1,44 @@
 
+# Roko's Mansion Intelligent Contract
+
+This contract implements a text-based adventure game with dynamic content generation, puzzle-solving elements, and state management.
+
+## Class: RokosMansion
+
+Implements the game logic for the "Mansion of Professor Roko" game.
+
+### Attributes:
+- `_allowed_styles`: List of allowed writing styles
+- `_style`: Selected writing style
+- `_allowed_countries`: List of allowed country styles
+- `_country`: Selected country style
+- `_inventory`: Player's inventory
+- `_environment`: String summarizing changes in the environment
+- `_current_page_number`: Current page number
+- `_current_page`: Current page content
+- `page_text_gen`: Generated page text
+- `page_actions_gen`: Generated page actions
+- `page_text`: Default page text
+- `page_actions`: Default page actions
+- `puzzles_solved`: List of solved puzzles
+- `puzzles_for_victory`: Number of puzzles required to win
+- `victory_page`: Page number for victory condition
+
+### Public Methods:
+```markdown
+- `get_current_page() -> str`
+- `get_current_page_number() -> int`
+- `async update_current_page()`
+- `async update_current_actions()`
+- `get_current_actions() -> str`
+- `async do_prompt(prompt: str) -> str`
+```
+
+### Key Features:
+- Utilizes an LLM (Language Model) to generate dynamic page content and actions
+- Manages game state, including inventory and environment changes
+- Handles puzzle-solving mechanics and victory conditions
+- Processes user prompts for both predefined actions and open-ended interactions
 
 ## Example Gameplay
 
@@ -61,11 +101,7 @@ You leave the sepulchral depths of Professor Roko's laboratory and make your way
 
 'go into left door'
 
-
-
-
-
-etcetera...
+You push open the left door, venturing into an area draped in shadow and the scent of old paper. This door leads you deeper into the mansion's secrets...
 
 
 
