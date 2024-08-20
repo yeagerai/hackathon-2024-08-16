@@ -64,7 +64,7 @@ class RokosMansion(IContract):
         self.page_puzzles_action = {}
         self.page_puzzles_action[3] = " To solve this puzzle you must choose ONLY one box and be logically consistent with the conditions.",
         self.page_puzzles_action[4] = " To solve this puzzle you must clearly say is the statement <Any person that is awake believes they are organic.> is true or false, and be logically consistent with the puzzle conditions."
-        self.page_puzzles_acion[5] = "To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said."
+        self.page_puzzles_action[5] = "To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said."
 
         self.page_text = {
             1: "Arrival at the Mansion: You are an engineer named Alex, invited to visit the mansion of Professor Roko, a notorious mad scientist known for dabbling in AI technology. Upon arrival, the mansion seems eerie, its large doors creaking open on their own. As you step inside, you feel a strange presence. A hologram of Professor Roko appears and reveals that he has made contact with a malicious artificial superintelligence (ASI) from the future. The ASI is sending cryptic messages and puzzles through devices scattered across the mansion.",
