@@ -36,7 +36,30 @@ The air is thick with an unnameable dread as you stand in the cavernous entrance
 * Choose the Door leading to Professor Roko's personal study: Approach the portal to his private sanctum, where the line between genius and insanity blurs amidst the relics of a dark intelligence.
 * Take the Staircase to the upper floor: Ascend the creaking steps, each groan a ghostly lament, toward a realm where the air thickens with foreboding and the truth may lurk just beyond sight.
 
-`cal do_prompt("choose the center door")`
+`cal do_prompt("enter the center door to the laboratory")`
+
+You push open the center door, and the thick air of the entrance hall gives way to the cold sterility of the laboratory. Strange devices and flickering screens surround you, hinting at the wonders and horrors that lie within.
+
+`page`
+
+Beneath the flickering glow of phosphorescent lights, the air in the laboratory thrummed with a quiet menace, as two astoundingly lifelike robotic guardians loomed over a shimmering vault imbued with an eerie, metallic scent reminiscent of a forgotten age. A palpable sense of dread coiled around the empty grasp of my hands, void of any instruments save for the persistent whisper of dread that echoed through my mind—what horrors lay entombed within those impenetrable confines? Outside, the desolate landscape of the American South bore witness to this unnatural sanctuary, a grotesque fusion of ancient mystery and future terrors, beckoning only the foolhardy or the damned to plumb its depths. Guard 1 (lying only for uranium) says 'The materials are either uranium or thorium,' Guard 2 (lying only for plutonium) says 'The secret material is plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection.
+
+`actions`
+
+* With trembling fingers, you must discern the correct element, unraveling the eldritch secrets entwined in this arcane puzzle.
+* With a heart heavy with foreboding, turn back to the Entrance Hall, the air thick with unseen specters, and select a new room to explore the mysteries that lurk within. To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said.
+
+`choose the thorium material`
+
+The user chose the thorium as the material hidden in the vault. The decision is based on the logic that Guard 1, who lies only about uranium, said the material could be uranium or thorium. This means it can't be uranium because he lies about it, so it could potentially be thorium. Guard 2, who lies about plutonium, stated the material was plutonium, so it can't be that. Thus, by process of exclusion, thorium is the only logical possibility.
+
+Laboratory Puzzle Solved!
+
+etcetera...
+
+
+
+
 
 
 
