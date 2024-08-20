@@ -4,28 +4,44 @@ from backend.node.genvm.equivalence_principle import call_llm_with_principle
 
 
 class ConstitutionalDAO(IContract):
+    """
+    A Constitutional DAO that uses AI to interpret and execute motions.
+    This DAO maintains a state and can update it based on user-submitted motions.
+    """
+
     def __init__(self):
-       
-        self.state = f"""
-{{
-    "constitution": [
-        "1. Anyone can become a member of the DAO",
-        "2. The consitution of the DAO can be updated by a unanimous vote"
-    ]
-}}
-"""
+        """
+        Initialize the ConstitutionalDAO with a basic constitution.
+        """
+        self.state = json.dumps({
+            "constitution": [
+                "1. Anyone can become a member of the DAO",
+                "2. The constitution of the DAO can be updated by a unanimous vote"
+            ]
+        })
 
     async def execute_motion(self, motion: str) -> None:
+        """
+        Execute a motion proposed by a user.
+
+        This method interprets the motion using an AI model and updates the DAO state accordingly.
+
+        Args:
+            motion (str): The motion proposed by a user.
+
+        Returns:
+            None
+        """
+        # Prepare the prompt for the language model
         prompt = f"""
 You are a constitutional DAO
 
 Your state is as follows:
-{ self.state } 
+{self.state}
 
-User with the address "{ contract_runner.from_address }"
+User with the address "{contract_runner.from_address}"
 has made the following motion:
-{ motion }
-
+{motion}
 
 Decide how to proceed
 Respond with the following JSON format:
@@ -40,17 +56,24 @@ your output must be only JSON without any formatting prefix or suffix.
 This result should be perfectly parseable by a JSON parser without errors.
         """
 
+        # Call the language model with the equivalence principle
         result = await call_llm_with_principle(
             prompt,
             eq_principle="The updated state has to be essentially equivalent",
         )
-        print(result)
+
+        # Clean up the result and parse it as JSON
         result_clean = result.replace("True", "true").replace("False", "false")
         output = json.loads(result_clean)
 
-        print(output)
-
+        # Update the DAO state
         self.state = json.dumps(output["updated_state"])
 
     def get_state(self) -> str:
+        """
+        Get the current state of the DAO.
+
+        Returns:
+            str: The current state of the DAO as a JSON string.
+        """
         return self.state

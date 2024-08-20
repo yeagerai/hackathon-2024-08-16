@@ -1,8 +1,8 @@
 import json
-from datetime import datetime
 from backend.node.genvm.icontract import IContract
 from backend.node.genvm.equivalence_principle import call_llm_with_principle
 
+# Custom exception classes for GenLayerDAO
 class DAOException(Exception):
     """Base exception class for GenLayerDAO"""
     pass
@@ -24,6 +24,21 @@ class InvalidInputException(DAOException):
     pass
 
 class Bounty:
+    """
+    Represents a bounty in the GenLayerDAO system.
+    
+    Attributes:
+        id (int): Unique identifier for the bounty
+        description (str): Detailed description of the bounty
+        reward_description (str): Description of the reward for completing the bounty
+        proposer (str): Address of the user who proposed the bounty
+        votes_for (int): Number of votes in favor of the bounty
+        votes_against (int): Number of votes against the bounty
+        status (str): Current status of the bounty ("proposed", "active", or "completed")
+        submissions (list): List of submissions for the bounty
+        vote_snapshot (dict): Snapshot of token balances at proposal time
+        has_voted (dict): Tracks which users have voted on the bounty
+    """
     def __init__(self, id: int, description: str, reward_description: str, proposer: str):
         self.id = id
         self.description = description
@@ -37,6 +52,17 @@ class Bounty:
         self.has_voted: dict[str, bool] = {}  # Track who has voted
 
 class GenLayerDAO(IContract):
+    """
+    Implements the GenLayerDAO contract with bounty management and voting system.
+    
+    Attributes:
+        total_supply (int): Total token supply of the DAO
+        token_supply (int): Current available token supply
+        balances (dict): Mapping of addresses to token balances
+        bounties (dict): Mapping of bounty IDs to Bounty objects
+        next_bounty_id (int): ID to be assigned to the next proposed bounty
+        constitution (list): List of rules governing the DAO
+    """
     def __init__(self):
         self.total_supply = 1000
         self.token_supply = self.total_supply
@@ -44,12 +70,11 @@ class GenLayerDAO(IContract):
         self.bounties: dict[int, Bounty] = {}
         self.next_bounty_id = 1
 
-        
-
+        # Define the constitution of the DAO
         self.constitution = [
             "This Constitution describes the decision-making framework for GenLayerDAO governance.",
             "The following process governs the rules and procedures by which GenLayerDAO may propose, vote on, and implement Bounty Programs.",
-            "GenLayerDAO’s purpose is to grow the GenLayer Blockchain by rewarding Bounty Program contributors with tokens.",
+            "GenLayerDAO's purpose is to grow the GenLayer Blockchain by rewarding Bounty Program contributors with tokens.",
             "An address must hold at least one token to be a member of the DAO.",  
             "Only members of the GenLayerDAO can propose new Bounty Programs.",
             "Bounty programs must follow be in line with one of the following goals:",
@@ -70,10 +95,24 @@ class GenLayerDAO(IContract):
         ]
 
     async def propose_bounty(self, bounty_proposal: str) -> str:
+        """
+        Proposes a new bounty to the DAO.
+        
+        Args:
+            bounty_proposal (str): Description of the proposed bounty
+        
+        Returns:
+            str: Message indicating the result of the proposal
+        
+        Raises:
+            InsufficientTokensException: If the proposer doesn't have any tokens
+            DAOException: If the proposal is rejected
+        """
         proposer = contract_runner.from_address
         if self.get_balance_of(proposer) == 0:
             raise InsufficientTokensException("Only DAO members can propose bounties.")
 
+        # Prepare prompt for LLM evaluation
         prompt = f"""
 You are GenLayerDAO.
 
@@ -116,6 +155,20 @@ This result should be perfectly parseable by a JSON parser without errors.
             raise DAOException(f"Bounty proposal rejected. Reason: {output['reasoning']}")
 
     def vote_on_bounty(self, bounty_id: int, vote: bool) -> str:
+        """
+        Casts a vote on a proposed bounty.
+        
+        Args:
+            bounty_id (int): ID of the bounty to vote on
+            vote (bool): True for a positive vote, False for a negative vote
+        
+        Returns:
+            str: Message indicating the result of the vote
+        
+        Raises:
+            InvalidBountyException: If the bounty ID is invalid
+            VotingException: If voting conditions are not met
+        """
         voter = contract_runner.from_address
         if bounty_id not in self.bounties:
             raise InvalidBountyException("Invalid bounty ID.")
@@ -135,6 +188,14 @@ This result should be perfectly parseable by a JSON parser without errors.
         return self._check_voting_result(bounty)
 
     def _cast_vote(self, bounty: Bounty, voter: str, vote: bool):
+        """
+        Internal method to cast a vote on a bounty.
+        
+        Args:
+            bounty (Bounty): The bounty being voted on
+            voter (str): Address of the voter
+            vote (bool): True for a positive vote, False for a negative vote
+        """
         voter_balance = bounty.vote_snapshot[voter]
 
         if vote:
@@ -145,6 +206,15 @@ This result should be perfectly parseable by a JSON parser without errors.
         bounty.has_voted[voter] = True
 
     def _check_voting_result(self, bounty: Bounty) -> str:
+        """
+        Checks the voting result for a bounty and updates its status if necessary.
+        
+        Args:
+            bounty (Bounty): The bounty to check
+        
+        Returns:
+            str: Message indicating the result of the check
+        """
         total_votes = bounty.votes_for + bounty.votes_against
         if total_votes >= self.total_supply // 3:
             if bounty.votes_for > bounty.votes_against:
@@ -156,10 +226,18 @@ This result should be perfectly parseable by a JSON parser without errors.
 
         return f"Vote recorded for bounty {bounty.id}."
 
-
     async def refine_bounty_details(self, bounty_proposal: str) -> tuple[str, str]:
+        """
+        Refines the bounty proposal using an LLM.
+        
+        Args:
+            bounty_proposal (str): Original bounty proposal
+        
+        Returns:
+            tuple: Refined description and reward description
+        """
         prompt = f"""
-You are an AI assistant helping to refine and standardize bounty proposals for GenLayerDAO. 
+You are an LLM helping to refine and standardize bounty proposals for GenLayerDAO. 
 The original bounty proposal is: "{bounty_proposal}"
 
 Please improve and structure this proposal by:
@@ -190,6 +268,19 @@ This result should be perfectly parseable by a JSON parser without errors.
         return output["refined_description"], output["refined_reward"]
 
     async def compute_reward(self, bounty_id: int, submission: str) -> int:
+        """
+        Computes the reward for a bounty submission using an LLM.
+        
+        Args:
+            bounty_id (int): ID of the bounty
+            submission (str): Submitted work for the bounty
+        
+        Returns:
+            int: Computed reward amount
+        
+        Raises:
+            InvalidBountyException: If the bounty ID is invalid
+        """
         if bounty_id not in self.bounties:
             raise InvalidBountyException("Invalid bounty ID")
 
@@ -222,6 +313,21 @@ This result should be perfectly parseable by a JSON parser without errors.
         return min(output["reward_amount"], self.total_supply)  # Ensure reward doesn't exceed total supply
 
     async def claim_bounty(self, bounty_id: int, submission: str) -> str:
+        """
+        Processes a claim for a bounty reward.
+        
+        Args:
+            bounty_id (int): ID of the bounty being claimed
+            submission (str): Submitted work for the bounty
+        
+        Returns:
+            str: Message indicating the result of the claim
+        
+        Raises:
+            InvalidBountyException: If the bounty ID is invalid or the bounty is not active
+            InsufficientTokensException: If there are not enough tokens to pay the reward
+            DAOException: If the submission is rejected
+        """
         submitter = contract_runner.from_address
         if bounty_id not in self.bounties:
             raise InvalidBountyException("Invalid bounty ID.")
@@ -272,11 +378,31 @@ This result should be perfectly parseable by a JSON parser without errors.
 
 
     def buy_tokens(self, amount: int):
+        """
+        Purchase tokens for the caller.
+
+        Args:
+            amount (int): The number of tokens to buy.
+
+        Raises:
+            InvalidInputException: If the amount is not a positive integer.
+        """
         if amount <= 0:
             raise InvalidInputException("Amount must be a positive integer.")
         self._send_tokens(amount, contract_runner.from_address)
 
     def _send_tokens(self, amount: int, holder: str):
+        """
+        Internal method to send tokens to a holder.
+
+        Args:
+            amount (int): The number of tokens to send.
+            holder (str): The address of the token recipient.
+
+        Raises:
+            InvalidInputException: If the amount is not a positive integer.
+            InsufficientTokensException: If there are not enough tokens in the supply.
+        """
         if amount <= 0:
             raise InvalidInputException("Amount must be a positive integer.")
         if self.token_supply < amount:
@@ -285,24 +411,76 @@ This result should be perfectly parseable by a JSON parser without errors.
         self.token_supply -= amount
 
     def get_balances(self) -> dict[str, int]:
+        """
+        Get the token balances of all holders.
+
+        Returns:
+            dict[str, int]: A dictionary mapping addresses to token balances.
+        """
         return self.balances
 
     def get_balance_of(self, address: str) -> int:
+        """
+        Get the token balance of a specific address.
+
+        Args:
+            address (str): The address to check the balance for.
+
+        Returns:
+            int: The token balance of the address.
+        """
         return self.balances.get(address, 0)
 
     def get_bounties(self) -> dict[int, dict]:
+        """
+        Get all bounties in the system.
+
+        Returns:
+            dict[int, dict]: A dictionary mapping bounty IDs to bounty details.
+        """
         return {id: bounty.__dict__ for id, bounty in self.bounties.items()}
 
     def get_bounty(self, bounty_id: int) -> dict:
+        """
+        Get details of a specific bounty.
+
+        Args:
+            bounty_id (int): The ID of the bounty to retrieve.
+
+        Returns:
+            dict: The details of the specified bounty.
+
+        Raises:
+            InvalidBountyException: If the bounty ID is invalid.
+        """
         if bounty_id in self.bounties:
             return self.bounties[bounty_id].__dict__
         raise InvalidBountyException("Invalid bounty ID")
 
     def _get_decode_json_resilient(self, s: str) -> dict:
+        """
+        Decode a JSON string in a resilient manner.
+
+        Args:
+            s (str): The JSON string to decode.
+
+        Returns:
+            dict: The decoded JSON object.
+        """
+        # Clean the string and replace boolean literals
         clean = self._get_extract_json_from_string(s).replace("True", "true").replace("False", "false")
         return json.loads(clean)
 
     def _get_extract_json_from_string(self, s: str) -> str:
+        """
+        Extract a JSON object from a string.
+
+        Args:
+            s (str): The string potentially containing a JSON object.
+
+        Returns:
+            str: The extracted JSON string, or an empty string if no valid JSON is found.
+        """
         start_index = s.find('{')
         end_index = s.rfind('}')
         if start_index != -1 and end_index != -1 and start_index < end_index:
