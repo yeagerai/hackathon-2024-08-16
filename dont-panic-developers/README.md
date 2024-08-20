@@ -55,6 +55,16 @@ The user chose the thorium as the material hidden in the vault. The decision is 
 
 **Laboratory Puzzle Solved!**
 
+`go back to entrance hall`
+
+You leave the sepulchral depths of Professor Roko's laboratory and make your way back to the familiar surroundings of the Entrance Hall.
+
+'go into left door'
+
+
+
+
+
 etcetera...
 
 
