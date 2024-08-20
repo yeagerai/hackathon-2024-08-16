@@ -51,7 +51,7 @@ class RokosMansion(IContract):
  
         self._inventory = []  # list of strings
         self._environment = ""
-        self._current_page_number = 1
+        self._current_page_number = 5
         self._current_page = ""
         self.page_text_gen = {}
         self.page_actions_gen = {}
@@ -62,11 +62,11 @@ class RokosMansion(IContract):
         self.page_puzzles = {}
         self.page_puzzles[3] = "Each box is labeled, but all labels are incorrect. One box contains only **Poison**, one contains only **Antidote**, and the last contains **Both Poison and Antidote**. The puzzle asks you to pick one item from any box, knowing that the labels are wrong. For example, if you pick from the box labeled 'Both Poison and Antidote,' whatever you pull will reveal how to correctly label all three boxes. Solving this puzzle deactivates the ASI’s device in the library and allows you to proceed.",
         self.page_puzzles[4] = "The room’s puzzle involves analyzing the behavior of Organics and Synthetics, two types of beings affected by the ASI: Organics believe everything while awake is true, and everything while asleep is false, while Synthetics believe the opposite. The puzzle asks you to determine the truth of the statement: 'Any person that is awake believes they are organic.' Solve it to deactivate the ASI’s device in the room."
-        self.page_puzzles[5] = "Guard 1 (lying for uranium) says 'The materials are either uranium or thorium,' Guard 2 (lying for plutonium) says 'The secret material is plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection."
+        self.page_puzzles[5] = "Guard 1 (a guard who lies only when talking about uranium) says 'The materials are either uranium or thorium,' Guard 2 (a guard who lies when talking about plutonium) says 'The secret material is plutonium'; solve their statements to determine the correct radioactive material and sever the ASI's timeline connection."
 
         self.page_puzzles_action = {}
         self.page_puzzles_action[3] = " To solve this puzzle you must choose ONLY one box and be logically consistent with the conditions.",
-        self.page_puzzles_action[4] = " To solve this puzzle you must clearly say is the statement <Any person that is awake believes they are organic.> is true or false, and be logically consistent with the puzzle conditions."
+        self.page_puzzles_action[4] = " To solve this puzzle you must clearly say if the statement <Any person that is awake believes they are organic.> is true or false, and be logically consistent with the puzzle conditions."
         self.page_puzzles_action[5] = "To solve this puzzle you must clearly say if the secret material mentioned by the Guards is plutonium, uranium or thorium, and be logically consistent with that what the Guards have said."
 
         self.page_text = {
@@ -83,11 +83,11 @@ class RokosMansion(IContract):
             11: "Victory!: After solving all the puzzles, you return to Professor Roko's study where the ASI's connection is permanently severed. The devices go dark, and you leave the mansion victorious, having saved the future."
         }
         self.page_actions = {
-            1: "Action: Explore the mansion, enter the mansion entrance hall and solve the puzzles to prevent the ASI from taking control of your world.",
+            1: "Action: Enter the mansion entrance hall (to solve the puzzles to prevent the ASI from taking control of your world).",
             2: "Action: Choose a door: Left (Library), Center (Laboratory), Right (Study), Door leading to Professor Roko's personal study, Staircase to the upper floor.",
-            3: "Action: Choose the correct box and step through the portal and return to the entrance hall. Now you must decide which room to explore next: Center (Laboratory), Right (Study), Professor Roko's Personal Study.",
-            4: "Action: Analyze the statement and determine if it is true or false. Correct it if necessary to deactivate the ASI's device. Return to the entrance hall: Left (Library), Center (Laboratory), Professor Roko's Personal Study.",
-            5: "Action: Choose the correct element to unlock the cave and retrieve the radioactive material. Return to the Entrance Hall and choose a new room to explore.",
+            3: "Action: Choose the correct box to solve the puzzle and step through the portal and return to the entrance hall. Now you must decide which room to explore next: Center (Laboratory), Right (Study), Professor Roko's Personal Study.",
+            4: "Action: Analyze the statement and determine if it is true or false to solve the puzzle. Correct it if necessary to deactivate the ASI's device. Return to the entrance hall: Left (Library), Center (Laboratory), Professor Roko's Personal Study.",
+            5: "Action: Choose the correct element is the action needed to solve the puzzle. Return to the Entrance Hall and choose a new room to explore.",
             6: "Action: Speak to Professor Roko. You may ask him about the Origin of the ASI, the Nature of the Puzzles, or how to defeat the ASI.",
             7: "Action: Explore the room and read the newspaper. Return to the Entrance Hall or proceed to another room.",
             8: "Action: Explore the hallway. Enter the unlocked room or return downstairs.",
@@ -138,7 +138,6 @@ class RokosMansion(IContract):
         """
         if self._current_page_number in self.page_text_gen:
             return
-
         prompt = f"""
 Generate a very brief but vivid scenario description (in 3 short sentences) for the current page in the "Mansion of Professor Roko" game. Use the following context:
 
@@ -162,7 +161,7 @@ Respond using ONLY the following format:
         output = json.loads(result)
         self.page_text_gen[self._current_page_number] = output["description"]
         if self._current_page_number in self.page_puzzles:
-           self.page_text_gen[self._current_page_number] += '\n\n' + self.page_puzzles[self._current_page_number] 
+           self.page_text_gen[self._current_page_number] += ' ' + self.page_puzzles[self._current_page_number] 
 
     async def update_current_actions(self):
         """
@@ -199,6 +198,9 @@ Respond using ONLY the following format:
         )
         output = json.loads(result)
         self.page_actions_gen[self._current_page_number] = output["actions"]
+
+        if self._current_page_number in self.page_puzzles_action:
+           self.page_actions_gen[self._current_page_number] += ' ' + self.page_puzzles_action[self._current_page_number] 
 
     def get_current_actions(self) -> str:
         """
