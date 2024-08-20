@@ -53,7 +53,7 @@ Beneath the flickering glow of phosphorescent lights, the air in the laboratory 
 
 The user chose the thorium as the material hidden in the vault. The decision is based on the logic that Guard 1, who lies only about uranium, said the material could be uranium or thorium. This means it can't be uranium because he lies about it, so it could potentially be thorium. Guard 2, who lies about plutonium, stated the material was plutonium, so it can't be that. Thus, by process of exclusion, thorium is the only logical possibility.
 
-Laboratory Puzzle Solved!
+**Laboratory Puzzle Solved!**
 
 etcetera...
 
