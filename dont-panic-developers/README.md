@@ -5,7 +5,7 @@ This contract implements a text-based adventure game with dynamic content genera
 
 ## Class: RokosMansion
 
-Implements the game logic for the "Mansion of Professor Roko" game.
+Implements the game logic for the "Roko's Mansion" game.
 
 ### Attributes:
 - `_allowed_styles`: List of allowed writing styles
