@@ -103,6 +103,45 @@ You leave the sepulchral depths of Professor Roko's laboratory and make your way
 
 You push open the left door, venturing into an area draped in shadow and the scent of old paper. This door leads you deeper into the mansion's secrets...
 
+## NFT Prototype for Game Awards: LlmErc721
+
+This NFT prototype allows for the integration of a game award system into the RokosMansion game, where players can receive an NFT token upon successfully completing the game.
+
+### Class: LlmErc721
+
+Implements an ERC721-like NFT contract using LLM for ownership transfers.
+
+### Attributes:
+- `_name`: Name of the NFT collection
+- `_symbol`: Symbol of the NFT collection
+- `_contract_address`: Address of the contract/game system
+- `_owners`: Mapping of token IDs to owners
+- `_balances`: Mapping of owners to token balances
+- `_token_approvals`: Mapping of token approvals
+- `_operator_approvals`: Mapping of operator approvals
+
+### Public Methods:
+```markdown
+- `async safe_transfer(from_address: str, to_address: str, token_id: int) -> None`
+- `balance_of(owner: str) -> int`
+- `owner_of(token_id: int) -> str`
+- `name() -> str`
+- `symbol() -> str`
+- `approve(to_address: str, token_id: int) -> None`
+- `get_approved(token_id: int) -> str`
+- `is_approved_for_all(owner: str, operator: str) -> bool`
+- `set_approval_for_all(owner: str, operator: str, approved: bool) -> None`
+- `async player_wins(player_address: str) -> None`
+```
+
+### Key Features:
+- Uses an LLM to manage token ownership transfers
+- Implements basic ERC721 functions like balance checking and approvals
+- Includes a `player_wins` function to award an NFT upon game completion
+- Utilizes the EquivalencePrinciple for validating LLM-based transfers
+
+
+
 
 
 
