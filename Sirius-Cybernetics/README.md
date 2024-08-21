@@ -35,3 +35,19 @@ You want to make a bet with a friend without revealing your choice beforehand.Or
 3. *Agreement:* If the hashes match, the value is considered valid and agreed upon. If not, the reveal is rejected.
 
 ### multi-modal-image-processing
+You need to process images using advanced machine learning models (LLMs) without relying on centralized servers, or create centralized key management service for keeping secrets there. This contract enables you to perform various image transformations like resizing, cropping, and color adjustments in a decentralized and secure way.
+
+1. Select & Prepare:
+
+You select the desired image transformation (e.g., resize, crop) and the best LLM for the job from a predefined list. This selection is based on a scoring system that ranks LLMs by their effectiveness for each type of transformation.
+
+2. *SendRequest:*
+
+The contract sends a request to the Chainlink Functions network, passing the image data, selected transformation type, and chosen LLM. This request includes the image bytes and transformation details, securely sent to the Chainlink node that will handle the processing.
+Processing:
+
+The Chainlink node, using the provided LLM, processes the image according to the requested transformation. This could involve calling an API (like OpenAI) to apply complex transformations like resizing or color adjustments.
+
+3. *Fulfillment:*
+
+Once the processing is complete, the Chainlink node returns the transformed image bytes to the smart contract. The smart contract verifies and returns result.
