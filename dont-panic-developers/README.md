@@ -3,6 +3,9 @@
 
 This contract implements a text-based adventure game with dynamic content generation, puzzle-solving elements, and state management.
 
+![image](https://github.com/user-attachments/assets/c1795dc2-e31c-4552-83b8-977797432a89)
+
+
 ## Class: RokosMansion
 
 Implements the game logic for the "Roko's Mansion" game.
