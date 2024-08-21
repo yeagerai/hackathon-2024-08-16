@@ -8,19 +8,68 @@ from web3 import Web3
 
 """
 This Multi-Modal Image Processing Contract leverages Decentralized Autonomous Compute (DAC) to perform various image 
-processing tasks without invoking any LLMs (Large Language Models). 
+processing tasks by invoking LLMs (Large Language Models). 
 The contract allows users to select a specific transformation type and applies the corresponding model directly on the decentralized network. 
 The processing is handled entirely by the DAC, ensuring that all computations are decentralized and secure.
 """
 class ImageDataManipulator(IContract):
     
     LLM_LIST = [
-        ('chatgpt-3-turbo', {'resize': 8, 'score': 7, 'rotate': 6}),
-        ('gpt-4', {'resize': 7, 'score': 9, 'rotate': 8}),
-        ('llama-2', {'resize': 6, 'score': 8, 'rotate': 7}),
-    ]
+    ('chatgpt-3-turbo', {
+        'resize': 8,
+        'crop': 7,
+        'rotate': 6,
+        'flip': 6,
+        'grayscale': 5,
+        'brightness': 5,
+        'contrast': 5,
+        'saturation': 5,
+        'blur': 4,
+        'sharpen': 4,
+        'invert_colors': 4,
+        'sepia': 4,
+        'resize_to_fit': 6,
+        'padding': 5,
+        'overlay_text': 4
+    }),
+    ('gpt-4', {
+        'resize': 7,
+        'crop': 9,
+        'rotate': 8,
+        'flip': 7,
+        'grayscale': 8,
+        'brightness': 8,
+        'contrast': 8,
+        'saturation': 7,
+        'blur': 7,
+        'sharpen': 7,
+        'invert_colors': 7,
+        'sepia': 6,
+        'resize_to_fit': 7,
+        'padding': 7,
+        'overlay_text': 6
+    }),
+    ('llama-2', {
+        'resize': 6,
+        'crop': 8,
+        'rotate': 7,
+        'flip': 6,
+        'grayscale': 6,
+        'brightness': 6,
+        'contrast': 6,
+        'saturation': 6,
+        'blur': 6,
+        'sharpen': 6,
+        'invert_colors': 5,
+        'sepia': 5,
+        'resize_to_fit': 6,
+        'padding': 6,
+        'overlay_text': 5
+    }),
+]
+
     
-    def __init__(self, image_url: str, chainlink_function_url: str, transformation_type: str, target_format: str):
+    def __init__(self, image_url: str, chainlink_function_url: str, transformation_type: str, target_format: str,private_key: str, provider_url: str):
         """
         Initializes a new instance of the ImageDataManipulator contract.
 
@@ -41,6 +90,18 @@ class ImageDataManipulator(IContract):
         self.transformation_type = transformation_type
         self.target_format = target_format
         self.transformed_image = None
+        
+        self.web3 = Web3(Web3.HTTPProvider(provider_url))
+        self.private_key = private_key
+        self.account = self.web3.eth.account.from_key(private_key)
+
+        # Contract ABI and Address
+        self.contract_address = chainlink_function_url
+        self.contract_abi = [  
+
+        ]
+        self.contract = self.web3.eth.contract(address=contract_address, abi=self.contract_abi)
+
           
     def select_llm(self) -> str:
         """
@@ -89,30 +150,27 @@ class ImageDataManipulator(IContract):
         
         selected_llm = self.select_llm()
 
-        # Prepare the payload for the Chainlink Function request
         payload = {
             "image_data": image_data.decode('latin1'),  # Encode as string for JSON
             "transformation_type": self.transformation_type,
             "llm": selected_llm
         }
 
-        # Call the Chainlink Function
         transformed_image_data = self.call_chainlink_function(payload)
 
         return transformed_image_data
 
     def call_chainlink_function(self, payload):
-        # Prepare the transaction for the Chainlink function call
         nonce = self.web3.eth.getTransactionCount(self.account.address)
         transaction = self.contract.functions.sendImageProcessingRequest(
             payload["image_data"],
             payload["transformation_type"],
             payload["llm"],
-            1,  # Replace with your subscriptionId
-            100000,  # Replace with your gas limit
-            Web3.toBytes(text="your_don_id")  # Replace with your DON ID
+            1, 
+            100000,  
+            Web3.toBytes(text="image_processor_don_id") 
         ).buildTransaction({
-            'chainId': 1,  # Replace with your chain ID
+            'chainId': 1,  # replace with actual chain_id
             'gas': 1000000,
             'gasPrice': self.web3.toWei('5', 'gwei'),
             'nonce': nonce,
