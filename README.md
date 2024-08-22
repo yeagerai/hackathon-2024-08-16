@@ -18,13 +18,13 @@ The YeagerAI Hackathon was an exciting opportunity for teams to test and develop
 ### Teams and Contributions
 Here are the teams that participated in the Hackathon, along with the highlights of their proposed use cases:
 
-- **Deep Thought Coders:** Denis, JM
-- **Infinite Improbability Engineers:** Jeff, Khush
-- **The Digital Dolphins:** Toni, Edgars
-- **The Towel Techies:** Agustin, Navi
-- **Don't Panic Developers:** Jose Ignacio, Araceli
-- **Sirius Cybernetics:** Raf, Bulat
-- **Vogon Constructors:** Kira, Cristiam
+- [**Deep Thought Coders:**](./DeepThoughtCoders/) [Denis, JM] The "ADRValidator" is a GenLayer-powered tool that automates and ensures trustless validation of architectural decision records, categorizing them and checking for consistency across projects, and features a token-based reward system to incentivize quality contributions in shared resource decision-making contexts.
+- [**Don't Panic Developers:**](./dont-panic-developers/) [Jose Ignacio, Araceli] "Roko's Mansion Game" is a text-based adventure game featuring dynamic content and puzzle-solving, managed through a contract that uses a language model for generating in-game text and actions, and includes an ERC721 NFT system to award players upon game completion.
+- [**Infinite Improbability Engineers:**]() [Jeff, Khush] 
+- [**Sirius Cybernetics:**](./Sirius-Cybernetics/) [Raf, Bulat] "On-chain-verifier" for verifying identities using social media. And a "P2P-commit-reveal"  privacy-focused contract enabling two parties to make agreements or bets without prematurely revealing their choices. Plus a "Multi-modal-image-processing" to perform image processing tasks such as resizing and color adjustments enhancing privacy and reducing reliance on centralized servers.
+- [**The Digital Dolphins:**]() [Toni, Edgars] 
+- [**The Towel Techies:**](./TowelTechies/) [Agustin, Navi] The "Social Sentiment Trading dApp" is a decentralized application that leverages sentiment analysis to generate trading signals based on tweets from influential crypto personalities. 
+- [**Vagon Constructors:**](./vagon-constructors/) [Kira, Cristiam] The "GitHub Bounties" contract is designed to financially reward developers for contributing to open source projects by merging pull requests that address and close specific issues.
 
 ### Results
 The hackathon concluded with presentations from all teams, and votes were cast to determine the most innovative use case. 
