@@ -56,31 +56,31 @@ class ADRValidator(IContract):
             print("ADR is not following the template, and thus is invalid...")
             return
 
-        # 6. Check for implicit decisions (ensure all decisions are explicit)
-        implicit_result = await self._only_one_explicit_decision(adr)
-        if not implicit_result["valid"]:
-            print("ADR has either implicit decisions or more than one explicit decision:", implicit_result["reason"])
+        # 2. Check that there is only one explicit decision being made in the ADR
+        only_one_decision = await self._only_one_explicit_decision(adr)
+        if not only_one_decision["valid"]:
+            print("ADR has either implicit decisions or more than one explicit decision:", only_one_decision["reason"])
             return
 
-        # 2. Check hierarchical validity (i.e., correct structure and section order)
+        # 3. Check hierarchical validity (i.e., correct structure and section order)
         hierarchical_result = await self._hierarchical(adr)
         if not hierarchical_result["valid"]:
             print("ADR failed hierarchical validity check:", hierarchical_result["reason"])
             return
 
-        # 3. Validate that the problem and context are clearly explained and relevant
+        # 4. Validate that the problem and context are clearly explained and relevant
         clear_problem_result = await self._clear_problem(adr)
         if not clear_problem_result["valid"]:
             print("ADR lacks a clear problem statement or relevant context:", clear_problem_result["reason"])
             return
 
-        # 4. Validate that the decision drivers are clearly explained and relevant
+        # 5. Validate that the decision drivers are clearly explained and relevant
         clear_decision_drivers = await self._clear_decision_drivers(adr)
         if not clear_decision_drivers["valid"]:
             print("ADR lacks clear decision drivers:", clear_decision_drivers["reason"])
             return
 
-        # 5. Ensure logical consistency (solution follows from problem and decision drivers)
+        # 6. Ensure logical consistency (solution follows from problem and decision drivers)
         logical_result = await self._logical_solution(adr)
         if not logical_result["valid"]:
             print("ADR failed logical consistency check:", logical_result["reason"])
@@ -90,12 +90,6 @@ class ADRValidator(IContract):
         alternative_solutions_result = await self._no_better_alternative_solutions(adr)
         if not alternative_solutions_result["valid"]:
             print("ADR potentially has better alternative solutions:", alternative_solutions_result["reason"])
-            return
-
-        # 8. Assess trade-offs and risks to the full system (ensure no negative impact on the overall system)
-        full_system_risk_result = await self._no_full_system_risk(adr)
-        if not full_system_risk_result["valid"]:
-            print("ADR poses risks to the full system:", full_system_risk_result["reason"])
             return
 
         # If all checks pass, proceed to update balances and add ADR
@@ -141,7 +135,7 @@ class ADRValidator(IContract):
         Respond ONLY with the following format:
         
         {{
-        "reasoning": str,
+        "reason": str,
         "valid": int,
         }}
         
@@ -212,7 +206,7 @@ class ADRValidator(IContract):
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
+        "reason": str,
         "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
@@ -246,7 +240,7 @@ class ADRValidator(IContract):
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
+        "reason": str,
         "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
@@ -280,7 +274,7 @@ class ADRValidator(IContract):
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
+        "reason": str,
         "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
@@ -298,28 +292,26 @@ class ADRValidator(IContract):
 
     async def _no_better_alternative_solutions(self, adr:str) -> bool:
         prompt = f"""
-        Here are some architecture decisions made in the past, and a new decision candidate.
-        You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
+        Evaluate the following Architecture Decision Record (ADR) to determine if there are any better alternative solutions than the proposed solution.
 
-        - Past decisions:
-        {self.arch_categories[category]['ADRs']}
+        The ADR:
 
-        - New decision candidate:
-        {adr}
+        "{adr}"
 
-        You must decide if the new decision can be accepted or if it should be rejected.
+        To determine if the proposed solution is the best, consider the following:
+        1. **Effectiveness**: Does the proposed solution solve the problem more effectively than other possible solutions? Are there other solutions that address the problem in a more complete or superior way?
+        2. **Efficiency**: Is the proposed solution more resource-efficient (e.g., time, cost, manpower) than other potential solutions? Are there alternatives that achieve the same outcome with fewer resources?
+        3. **Simplicity**: Is the proposed solution simpler to implement or understand compared to other potential solutions? Are there alternatives that are easier to implement or require less complexity?
+        4. **Risk Management**: Does the proposed solution have fewer risks or potential downsides than other alternatives? Are there other solutions with lower risk profiles?
 
-        In case of rejection:
-        - You MUST provide a REASON for the rejection.
+        Based on these criteria, evaluate whether there are any better alternative solutions than the proposed solution in the ADR.
 
-        In case of acceptance:
-        - The REASON should be an EMPTY STRING.
-        - You MUST decide of a REWARD (INTEGER) between 1 and {self.max_reward}. Evaluate the reward based on the potential impact, importance, and writing quality of the candidate.
+        The REASON can't be an EMPTY STRING.
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
-        "reward": int,
+        "reason": str,
+        "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
         nothing else. Don't include any other words or characters,
@@ -336,9 +328,9 @@ class ADRValidator(IContract):
 
     # async def _no_full_system_risk(self, adr:str) -> bool: ... # mega prompt (maybe we need memory here)
 
-    # async def _feasible(self, adr:str) -> bool: ...
+    # async def _feasible(self, adr:str) -> bool: ... # complex as we need external data to ensure that
 
-    async def _evaluate_adr_reward(self, adr: str, category: str) -> object:
+    async def _evaluate_adr_reward(self, adr: str, category: str) -> dict:
         prompt = f"""
         Here is a new valid ADR submitted by a user.
 
@@ -350,7 +342,7 @@ class ADRValidator(IContract):
         Respond ONLY with the following format:
         
         {{
-        "reasoning": str,
+        "reason": str,
         "reward": int,
         }}
         
