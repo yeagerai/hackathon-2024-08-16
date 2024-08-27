@@ -46,6 +46,7 @@ class ADRValidator(IContract):
             self.arch_categories[f"{category_name}"] = {
                 "description": category_description,
                 "ADRs": [],
+                "deps-DAG": {},
             }
 
     async def validate_adr(self, adr: str, category_name: str) -> None:
@@ -68,7 +69,7 @@ class ADRValidator(IContract):
         print("One explicit decision check passed ...")
 
         # 3. Check hierarchical validity (i.e., correct structure and section order)
-        hierarchical_result = await self._hierarchical(adr)
+        hierarchical_result = await self._hierarchical(adr, category_name)
         if not hierarchical_result["valid"]:
             print(
                 "ADR failed hierarchical validity check:", hierarchical_result["reason"]
@@ -120,6 +121,9 @@ class ADRValidator(IContract):
         )  # Hypothetical reward evaluation function
         self.balances[contract_runner.from_address] += output["reward"]
         self.arch_categories[category_name]["ADRs"].append(adr)
+        self.arch_categories[category_name]["deps-DAG"][
+            len(self.arch_categories[category_name]["ADRs"])
+        ] = adr.split("- Dependencies:")[1].split("\n")[0]
 
         print("ADR successfully validated and added.")
 
