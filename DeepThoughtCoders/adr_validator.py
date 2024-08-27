@@ -62,37 +62,43 @@ class ADRValidator(IContract):
             print("ADR failed hierarchical validity check:", hierarchical_result["reason"])
             return
 
-        # 3. Ensure logical consistency (no contradictions within the ADR or with past ADRs)
-        logical_result = await self._logical(adr)
-        if not logical_result["valid"]:
-            print("ADR failed logical consistency check:", logical_result["reason"])
-            return
-
-        # 4. Check for implicit decisions (ensure all decisions are explicit)
-        implicit_result = await self._implicit(adr)
-        if not implicit_result["valid"]:
-            print("ADR has implicit decisions:", implicit_result["reason"])
-            return
-
-        # 5. Validate that the problem and context are clearly explained and relevant
+        # 3. Validate that the problem and context are clearly explained and relevant
         clear_problem_result = await self._clear_problem(adr)
         if not clear_problem_result["valid"]:
             print("ADR lacks a clear problem statement or relevant context:", clear_problem_result["reason"])
             return
 
-        # 6. Check for valid alternative solutions (ensure the best solution is proposed)
+        # 4. Validate that the decision drivers are clearly explained and relevant
+        clear_decision_drivers = await self._clear_decision_drivers(adr)
+        if not clear_decision_drivers["valid"]:
+            print("ADR lacks clear decision drivers:", clear_decision_drivers["reason"])
+            return
+
+        # 5. Ensure logical consistency (solution follows from problem and decision drivers)
+        logical_result = await self._logical(adr)
+        if not logical_result["valid"]:
+            print("ADR failed logical consistency check:", logical_result["reason"])
+            return
+
+        # 6. Check for implicit decisions (ensure all decisions are explicit)
+        implicit_result = await self._no_implicit(adr)
+        if not implicit_result["valid"]:
+            print("ADR has implicit decisions:", implicit_result["reason"])
+            return
+        
+        # 7. Check for valid alternative solutions (ensure the best solution is proposed)
         alternative_solutions_result = await self._valid_alternative_solutions(adr)
         if not alternative_solutions_result["valid"]:
             print("ADR does not consider or justify alternative solutions:", alternative_solutions_result["reason"])
             return
 
-        # 7. Assess trade-offs and risks to the full system (ensure no negative impact on the overall system)
+        # 8. Assess trade-offs and risks to the full system (ensure no negative impact on the overall system)
         full_system_risk_result = await self._full_system_risk(adr)
         if not full_system_risk_result["valid"]:
             print("ADR poses risks to the full system:", full_system_risk_result["reason"])
             return
 
-        # 8. Check feasibility (ensure the solution is practical with available resources and technology)
+        # 9. Check feasibility (ensure the solution is practical with available resources and technology)
         feasibility_result = await self._feasible(adr)
         if not feasibility_result["valid"]:
             print("ADR is not feasible:", feasibility_result["reason"])
@@ -133,11 +139,7 @@ class ADRValidator(IContract):
 
         You must decide if the new decision candidate is hierarchicaly valid. Else has to be rejected.
 
-        In case of rejection:
-        - You MUST provide a REASON for the rejection.
-
-        In case of acceptance:
-        - The REASON should be an EMPTY STRING.
+        The REASON can't be an EMPTY STRING.
 
         Respond ONLY with the following format:
         {{
@@ -157,61 +159,26 @@ class ADRValidator(IContract):
         output = json.loads(result_clean)
         return output
 
-    async def _logical(self, adr:str) -> bool:
+    async def _clear_problem(self, adr:str) -> bool:
         prompt = f"""
-        Here is a new architecture decision candidate:
-        {adr}
+        Evaluate the following problem statement in an Architecture Decision Record (ADR):
 
-        You must decide if the new decision is logical or not. Which means identify the hypothesis, and if the conclusions follow logically from there.
+        "{adr}"
 
-        In case of rejection:
-        - You MUST provide a REASON for the rejection.
+        To determine if the problem is well-posed and real, consider the following:
+        1. Is the problem clearly and unambiguously defined?
+        2. Is the problem relevant to the context or domain of the ADR?
+        3. Is there evidence or examples provided to support the existence and significance of the problem?
+        4. Is the problem statement specific and focused, not vague or overly broad?
 
-        In case of acceptance:
-        - The REASON should be an EMPTY STRING.
+        Based on these criteria, provide an evaluation.
 
-        Respond ONLY with the following format:
-        {{
-        "reason": str,
-        "valid": int,
-        }}
-        It is mandatory that you respond only using the JSON format above,
-        nothing else. Don't include any other words or characters,
-        your output must be only JSON without any formatting prefix or suffix.
-        This result should be perfectly parseable by a JSON parser without errors.
-        """
-        result = await call_llm_with_principle(
-            prompt,
-            eq_principle="The result['reward'] has to be exactly the same",
-        )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
-        output = json.loads(result_clean)
-        return output
-
-    async def _implicit(self, adr:str) -> bool:
-        prompt = f"""
-        Here are some architecture decisions made in the past, and a new decision candidate.
-        You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
-
-        - Past decisions:
-        {self.arch_categories[category]['ADRs']}
-
-        - New decision candidate:
-        {adr}
-
-        You must decide if the new decision can be accepted or if it should be rejected.
-
-        In case of rejection:
-        - You MUST provide a REASON for the rejection.
-
-        In case of acceptance:
-        - The REASON should be an EMPTY STRING.
-        - You MUST decide of a REWARD (INTEGER) between 1 and {self.max_reward}. Evaluate the reward based on the potential impact, importance, and writing quality of the candidate.
+        The REASON can't be an EMPTY STRING.
 
         Respond ONLY with the following format:
         {{
         "reasoning": str,
-        "reward": int,
+        "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
         nothing else. Don't include any other words or characters,
@@ -226,7 +193,75 @@ class ADRValidator(IContract):
         output = json.loads(result_clean)
         return output
 
-    async def _clear_problem(self, adr:str) -> bool:
+    async def _clear_decision_drivers(self, adr:str) -> bool:
+        prompt = f"""
+        Evaluate the following decision drivers in an Architecture Decision Record (ADR):
+
+        "{adr}"
+
+        To determine if the decision drivers are correct, consider the following:
+        1. Are the decision drivers relevant to the problem and context of the ADR?
+        2. Are the decision drivers justified with clear reasoning for their importance?
+        3. Do the decision drivers contradict each other or the problem statement?
+        4. Are all relevant decision drivers considered, and are they prioritized correctly?
+
+        Based on these criteria, provide an evaluation.
+
+        The REASON can't be an EMPTY STRING.
+
+        Respond ONLY with the following format:
+        {{
+        "reasoning": str,
+        "valid": bool,
+        }}
+        It is mandatory that you respond only using the JSON format above,
+        nothing else. Don't include any other words or characters,
+        your output must be only JSON without any formatting prefix or suffix.
+        This result should be perfectly parseable by a JSON parser without errors.
+        """
+        result = await call_llm_with_principle(
+            prompt,
+            eq_principle="The result['reward'] has to be exactly the same",
+        )
+        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        output = json.loads(result_clean)
+        return output
+
+    async def _logical(self, adr:str) -> bool:
+        prompt = f"""
+        Evaluate the following solution in an Architecture Decision Record (ADR):
+
+        "{adr}"
+
+        To determine if the solution follows logically from the problem and decision drivers, consider the following:
+        1. Does the solution directly address the problem as defined in the ADR?
+        2. Is there a logical progression from the decision drivers to the conclusion?
+        3. Is the reasoning from the problem and decision drivers to the solution free from logical fallacies?
+        4. Is the solution effective in resolving the problem given the decision drivers?
+
+        Based on these criteria, provide an evaluation.
+
+        The REASON can't be an EMPTY STRING.
+
+        Respond ONLY with the following format:
+        {{
+        "reasoning": str,
+        "valid": bool,
+        }}
+        It is mandatory that you respond only using the JSON format above,
+        nothing else. Don't include any other words or characters,
+        your output must be only JSON without any formatting prefix or suffix.
+        This result should be perfectly parseable by a JSON parser without errors.
+        """
+        result = await call_llm_with_principle(
+            prompt,
+            eq_principle="The result['reward'] has to be exactly the same",
+        )
+        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        output = json.loads(result_clean)
+        return output
+
+    async def _no_implicit(self, adr:str) -> bool:
         prompt = f"""
         Here are some architecture decisions made in the past, and a new decision candidate.
         You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
