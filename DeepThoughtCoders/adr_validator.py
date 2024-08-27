@@ -55,49 +55,69 @@ class ADRValidator(IContract):
         if not self._check_template(adr):
             print("ADR is not following the template, and thus is invalid...")
             return
+        print("Template check passed ...")
 
         # 2. Check that there is only one explicit decision being made in the ADR
         only_one_decision = await self._only_one_explicit_decision(adr)
         if not only_one_decision["valid"]:
-            print("ADR has either implicit decisions or more than one explicit decision:", only_one_decision["reason"])
+            print(
+                "ADR has either implicit decisions or more than one explicit decision:",
+                only_one_decision["reason"],
+            )
             return
+        print("One explicit decision check passed ...")
 
         # 3. Check hierarchical validity (i.e., correct structure and section order)
         hierarchical_result = await self._hierarchical(adr)
         if not hierarchical_result["valid"]:
-            print("ADR failed hierarchical validity check:", hierarchical_result["reason"])
+            print(
+                "ADR failed hierarchical validity check:", hierarchical_result["reason"]
+            )
             return
+        print("Hierarchical check passed ...")
 
         # 4. Validate that the problem and context are clearly explained and relevant
         clear_problem_result = await self._clear_problem(adr)
         if not clear_problem_result["valid"]:
-            print("ADR lacks a clear problem statement or relevant context:", clear_problem_result["reason"])
+            print(
+                "ADR lacks a clear problem statement or relevant context:",
+                clear_problem_result["reason"],
+            )
             return
+        print("Clear problem check passed ...")
 
         # 5. Validate that the decision drivers are clearly explained and relevant
         clear_decision_drivers = await self._clear_decision_drivers(adr)
         if not clear_decision_drivers["valid"]:
             print("ADR lacks clear decision drivers:", clear_decision_drivers["reason"])
             return
+        print("Clear decision drivers check passed ...")
 
         # 6. Ensure logical consistency (solution follows from problem and decision drivers)
         logical_result = await self._logical_solution(adr)
         if not logical_result["valid"]:
             print("ADR failed logical consistency check:", logical_result["reason"])
             return
-        
+        print("Logical solution check passed ...")
+
         # 7. Check for valid alternative solutions (ensure the best solution is proposed)
         alternative_solutions_result = await self._no_better_alternative_solutions(adr)
         if not alternative_solutions_result["valid"]:
-            print("ADR potentially has better alternative solutions:", alternative_solutions_result["reason"])
+            print(
+                "ADR potentially has better alternative solutions:",
+                alternative_solutions_result["reason"],
+            )
             return
+        print("No better alternative solutions check passed ...")
 
         # If all checks pass, proceed to update balances and add ADR
         if contract_runner.from_address not in self.balances:
             self.balances[contract_runner.from_address] = 0
 
         # Example of adding reward logic here based on evaluation
-        output = await self._evaluate_adr_reward(adr, category_name)  # Hypothetical reward evaluation function
+        output = await self._evaluate_adr_reward(
+            adr, category_name
+        )  # Hypothetical reward evaluation function
         self.balances[contract_runner.from_address] += output["reward"]
         self.arch_categories[category_name]["ADRs"].append(adr)
 
@@ -105,13 +125,31 @@ class ADRValidator(IContract):
 
     def _check_template(self, adr: str) -> bool:
         adr = adr.replace("\r\n", "\n").replace("\r", "\n")
-        pattern = r"^\# [^\n]+?\n+(- Status: (proposed|accepted|validated).+)\n+(- Deciders: [^\n]+)\n+(- Date: \d\d\d\d-\d\d-\d\d)\n+(\#\# Context and Problem Statement)\n+(\#\#\#\# Problem\n+(.|\n)*)+(\#\#\#\# Context\n+(.|\n)*)+(\#\# Decision Drivers+(.|\n)*)+(\#\# Considered Options+(.|\n)*)+(\#\# Decision Outcome+(.|\n)*)+(\#\#\# Consequences+(.|\n)*)+(\#\# Pros and Cons of the Options+(.|\n)*)+(\#\#\#(.|\n)*)+(\#\#\#\# Pros+(.|\n)*)+(\#\#\#\# Cons+(.|\n)*)+(\#\#\#(.|\n)*)+(\#\#\#\# Pros+(.|\n)*)+(\#\#\#\# Cons+(.|\n)*)"
-        compiled_pattern = re.compile(pattern, re.MULTILINE | re.DOTALL)
-        result = bool(compiled_pattern.match(adr))
-        print("Result of checking template structure: ", result)
-        return result
 
-    async def _only_one_explicit_decision(self, adr:str) -> bool:
+        # Define regex patterns for each required section of the template
+        patterns = {
+            "title": r"# .+",
+            "status": r"\- Status:\s*.+",
+            "author": r"\- Author:\s*.+",
+            "date": r"\- Date:\s*\d{4}-\d{2}-\d{2}",
+            "dependencies": r"\- Dependencies:\s*(.*)?",
+            "context_and_problem_statement": r"## Context and Problem Statement.+",
+            "decision_drivers": r"## Decision Drivers.+",
+            "considered_options": r"## Considered Options.+",
+            "decision_outcome": r"## Decision Outcome.+",
+            "consequences": r"## Consequences.+",
+            "pros_and_cons": r"## Pros and Cons of the Options.+",
+        }
+        # Check each pattern to ensure it is present in the document
+        for section, pattern in patterns.items():
+            compiled_pattern = re.compile(pattern, re.MULTILINE | re.DOTALL)
+            if not compiled_pattern.search(adr):
+                print(f"Missing or malformed section: {section}")
+                return False
+
+        return True
+
+    async def _only_one_explicit_decision(self, adr: str) -> bool:
         prompt = f"""
         Evaluate the following Architecture Decision Record (ADR) to determine if it meets the following criteria:
 
@@ -148,11 +186,13 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
-    async def _hierarchical(self, adr:str, category:str) -> bool:
+    async def _hierarchical(self, adr: str, category: str) -> bool:
         prompt = f"""
         Here are the past decisions on for the {category}:
         {self.arch_categories[category]['ADRs']}
@@ -184,11 +224,13 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['valid'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
-    async def _clear_problem(self, adr:str) -> bool:
+    async def _clear_problem(self, adr: str) -> bool:
         prompt = f"""
         Evaluate the following problem statement in an Architecture Decision Record (ADR):
 
@@ -218,11 +260,13 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
-    async def _clear_decision_drivers(self, adr:str) -> bool:
+    async def _clear_decision_drivers(self, adr: str) -> bool:
         prompt = f"""
         Evaluate the following decision drivers in an Architecture Decision Record (ADR):
 
@@ -252,11 +296,13 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
-    async def _logical_solution(self, adr:str) -> bool:
+    async def _logical_solution(self, adr: str) -> bool:
         prompt = f"""
         Evaluate the following solution in an Architecture Decision Record (ADR):
 
@@ -286,11 +332,13 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
-    async def _no_better_alternative_solutions(self, adr:str) -> bool:
+    async def _no_better_alternative_solutions(self, adr: str) -> bool:
         prompt = f"""
         Evaluate the following Architecture Decision Record (ADR) to determine if there are any better alternative solutions than the proposed solution.
 
@@ -322,7 +370,9 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be exactly the same",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
 
@@ -359,6 +409,8 @@ class ADRValidator(IContract):
             prompt,
             eq_principle="The result['reward'] has to be +-1",
         )
-        result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
+        result_clean = result.replace("True", "true").replace(
+            "False", "false"
+        )  # to make sure is valid python
         output = json.loads(result_clean)
         return output
