@@ -119,28 +119,30 @@ class ADRValidator(IContract):
 
     async def _hierarchical(self, adr:str, category:str) -> bool:
         prompt = f"""
-        Here are some architecture decisions made in the past, and a new decision candidate.
-        You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
-
-        - Past decisions:
+        Here are the past decisions on for the {category}:
         {self.arch_categories[category]['ADRs']}
 
-        - New decision candidate:
+        Here is the graph of dependencies:
+        {self.arch_categories[category]['deps-DAG']}
+
+        The new decision candidate:
         {adr}
 
-        You must decide if the new decision can be accepted or if it should be rejected.
+        We define an ADR candidate as hierarchicaly valid if and only if depends on the previous decisions defined by the user (+ the corresponding chain of deps) 
+        and does not depend on the rest of decisions, and does not depend on decisions that have not been discussed yet.
+
+        You must decide if the new decision candidate is hierarchicaly valid. Else has to be rejected.
 
         In case of rejection:
         - You MUST provide a REASON for the rejection.
 
         In case of acceptance:
         - The REASON should be an EMPTY STRING.
-        - You MUST decide of a REWARD (INTEGER) between 1 and {self.max_reward}. Evaluate the reward based on the potential impact, importance, and writing quality of the candidate.
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
-        "reward": int,
+        "reason": str,
+        "valid": bool,
         }}
         It is mandatory that you respond only using the JSON format above,
         nothing else. Don't include any other words or characters,
@@ -149,7 +151,7 @@ class ADRValidator(IContract):
         """
         result = await call_llm_with_principle(
             prompt,
-            eq_principle="The result['reward'] has to be exactly the same",
+            eq_principle="The result['valid'] has to be exactly the same",
         )
         result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
         output = json.loads(result_clean)
@@ -157,28 +159,21 @@ class ADRValidator(IContract):
 
     async def _logical(self, adr:str) -> bool:
         prompt = f"""
-        Here are some architecture decisions made in the past, and a new decision candidate.
-        You must check past decisions for contradiction with the new candidate that would block this candidate from being added to ADRs.
-
-        - Past decisions:
-        {self.arch_categories[category]['ADRs']}
-
-        - New decision candidate:
+        Here is a new architecture decision candidate:
         {adr}
 
-        You must decide if the new decision can be accepted or if it should be rejected.
+        You must decide if the new decision is logical or not. Which means identify the hypothesis, and if the conclusions follow logically from there.
 
         In case of rejection:
         - You MUST provide a REASON for the rejection.
 
         In case of acceptance:
         - The REASON should be an EMPTY STRING.
-        - You MUST decide of a REWARD (INTEGER) between 1 and {self.max_reward}. Evaluate the reward based on the potential impact, importance, and writing quality of the candidate.
 
         Respond ONLY with the following format:
         {{
-        "reasoning": str,
-        "reward": int,
+        "reason": str,
+        "valid": int,
         }}
         It is mandatory that you respond only using the JSON format above,
         nothing else. Don't include any other words or characters,
@@ -336,7 +331,7 @@ class ADRValidator(IContract):
         """
         result = await call_llm_with_principle(
             prompt,
-            eq_principle="The result['reward'] has to be exactly the same",
+            eq_principle="The result['reward'] has to be +-1",
         )
         result_clean = result.replace("True", "true").replace("False", "false") # to make sure is valid python
         output = json.loads(result_clean)
