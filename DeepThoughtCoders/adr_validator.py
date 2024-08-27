@@ -326,9 +326,13 @@ class ADRValidator(IContract):
         output = json.loads(result_clean)
         return output
 
-    # async def _no_full_system_risk(self, adr:str) -> bool: ... # mega prompt (maybe we need memory here)
+    # The three checks below have to be done manually by team members for now but in the future can potentially be automated
 
-    # async def _feasible(self, adr:str) -> bool: ... # complex as we need external data to ensure that
+    # async def _no_full_system_risk(self, adr:str) -> bool: ... # mega prompt with all ADRs of all categories (or find a more efficient way)
+
+    # async def _feasible(self, adr:str) -> bool: ... # complex as we need external data to ensure that (github roadmaps, etc)
+
+    # async def _strategically_aligned(self, adr:str) -> bool: ... # probably we need a genlayer DAO to answer
 
     async def _evaluate_adr_reward(self, adr: str, category: str) -> dict:
         prompt = f"""

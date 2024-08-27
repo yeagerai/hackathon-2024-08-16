@@ -1,26 +1,25 @@
 # ADRValidator
 ## Overview
-The ADRValidator is a tool designed to facilitate automated and trustless decision-making for architectural decision records (ADRs). It leverages the GenLayer infrastructure to validate, categorize, and ensure the consistency of ADRs across different projects. This system is particularly useful in contexts where decisions about shared resources, including money or software architecture, are critical.
-
-![Flowchart](flowchart.png)
+The ADRValidator GenLayer contract is a comprehensive tool designed for the automated validation, management, and enforcement of architecture decision records (ADRs) within a decentralized framework. It is built on the GenLayer infrastructure, which supports trustless operations and ensures a high standard of consistency and reliability across various architectural decisions. This tool is invaluable in environments where decisions impact shared resources, including software architecture or budget allocations.
 
 ## Output Examples
 Below are explanations of various outputs from the ADRValidator, which illustrate how the system responds to different scenarios in the validation process:
 
 ![Outputs](outputs.png)
 
-## Features
-### Template Validation
-**Regex-based Format Checking:** Ensures all ADRs adhere to a specific template format using regular expressions.
+## Key Features
 
-### Categorization
-**Dynamic Category Management:** Allows the owner to define and manage different architectural categories.
+### Owner Management
 
-### Consistency Checking
-**Contradiction Analysis:** Compares new ADRs against existing ones to detect contradictions, ensuring alignment with established principles.
+- **Ownership Control:** Secure methods to transfer ownership of the contract ensuring that administrative privileges are safeguarded.
+
+### ADR Validation Mechanisms
+
+- **Comprehensive Validation Checks:** Multiple asynchronous checks validate the logical structure, decision-making clarity, relevance of problem statements, and decision drivers. You can read more [here](./validation_checks.md).
 
 ### Reward System
-**Token-based Incentives:** Rewards contributions based on the impact, importance, and quality of writing. This system encourages meaningful contributions and could potentially be used to determine winners in competitions like hackathons.
+
+- **Token-based Incentives:** Implements a reward system that allocates tokens based on the ADR's impact, importance, and quality, encouraging high-quality contributions.
 
 ## Usage
 ### When to Use
@@ -30,8 +29,13 @@ Below are explanations of various outputs from the ADRValidator, which illustrat
 **Automated Decision-Making:** Reduces the workload on individuals by automating the validation process.
 **Trustless Operation:** Minimizes the risk of biased decisions by removing personal discretion from the validation process.
 
-## Market Potential
-ADRValidator is not limited to GenLayer's internal use but can be integrated by any development team that utilizes ADRs to govern architecture decisions. Its universal applicability makes it a valuable tool for a wide range of software development projects.
+## Market Potential and Future Directions
 
-## Future Challenges
-Future enhancements will focus on robustness to prevent spammy or fake ADR submissions. Additionally, the goal is to integrate this system directly with platforms like GitHub, turning it into a comprehensive repository for ADRs accessible to developers worldwide.
+### Applicability
+
+- **Wide Applicability:** Ideal for any development team or organization using ADRs to guide architectural decisions. Its flexibility makes it a robust tool across different industries.
+
+### Future Enhancements
+
+- **Integration with Development Platforms:** Future versions will aim to integrate directly with platforms like GitHub, creating a seamless experience for managing ADRs.
+- **Spam and Fraud Mitigation:** Enhancements to improve robustness against low-quality or fraudulent submissions.
